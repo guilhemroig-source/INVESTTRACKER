@@ -12,3 +12,4 @@ export * from "./news";
 export * from "./fiche";
 export * from "./fiche-store";
 export * from "./watch-store";
+export * from "./portfolio-store";

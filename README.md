@@ -211,7 +211,7 @@ Modifier le schéma : éditer `packages/core/src/db/schema.ts`, puis `pnpm db:ge
 | `13f` | Dernier 13F de chaque fonds (insiderset, colonne « Value » ignorée), puis vérification ligne à ligne sur EDGAR par différence entre les tables d'information de deux trimestres. Les mouvements officiels absents d'insiderset sont ajoutés quand leur CUSIP correspond à un symbole connu. Détecte un 13F déposé sur EDGAR avant la mise à jour d'insiderset. | www.insiderset.com, efts.sec.gov, www.sec.gov |
 | `trump` | OGE 278-T retranscrits par getsignal (statistiques, déclarations, 150 dernières transactions, top des actions), nombre de transactions de la dernière déclaration recoupé avec open-cabinet | getsignal.finance, open-cabinet.org |
 | `congres` | Transactions et classement des élus (API gratuite Bargo, attribution affichée) | www.bargo.ai |
-| `prix` | Cours journaliers ajustés pour l'analyse technique, plus SPY et QQQ comme références de marché | api.tiingo.com |
+| `prix` | Cours journaliers ajustés pour l'analyse technique et le portefeuille, plus SPY, QQQ et VT (ETF monde) comme références | api.tiingo.com |
 | `fondamentaux` | Comptes de chaque société (API XBRL « companyfacts » de la SEC) : chiffre d'affaires, bénéfice et BPA sur 12 mois glissants, flux de trésorerie, dette, trésorerie, nombre d'actions ; rafraîchis chaque semaine | data.sec.gov |
 | `news` | Annonces 8-K de chaque société (EDGAR) et articles de presse (GDELT) autour des opérations | efts.sec.gov, www.sec.gov, api.gdeltproject.org |
 | `all` | `tickers`, `ark`, `edgar-musk`, `openinsider` (→ `edgar-insiders` si échec), `13f`, `trump`, `congres`, `prix`, `fondamentaux`, `news` | |
@@ -287,6 +287,16 @@ Trois types de règles : une **action** (achats, ventes ou les deux), un **inves
 
 Cours ajusté (3 mois, 6 mois, 1 an, tout) avec les achats ▲ et ventes ▼ des investisseurs (initiale de la source, filtres par source, infobulle de la journée) et les annonces officielles ◆ ; toutes les opérations sur l'action (dépliables) ; annonces 8-K et presse ; fiche complète ; bouton « Suivre ».
 
+### Mon portefeuille (onglet « Mon portefeuille »)
+
+Vos vraies transactions (achat, vente, dividende ; compte CTO, PEA, assurance-vie ; frais) donnent : positions au prix de revient moyen pondéré frais inclus, gains latents et réalisés, dividendes, poids de chaque ligne, et la **comparaison avec un ETF** (monde VT par défaut, ou S&P 500 / Nasdaq 100) en rejouant chaque achat et chaque vente sur l'ETF pour le même montant et à la même date. Impôt estimé sur le compte-titres (flat tax 30 %). **Règles de risque** réglables (poids maximum d'une ligne, seuil de baisse qui déclenche une revue) ; alertes aussi quand des investisseurs suivis vendent une de vos lignes, quand une décision du journal est à revoir, ou quand une action américaine est déclarée sur un PEA. Les alertes figurent dans le SMS de 7h47. Les cours des actions détenues sont téléchargés même si aucun investisseur suivi ne les détient. Routes : `GET/POST /api/portefeuille`, `DELETE /api/portefeuille/<id>`, `PUT /api/portefeuille/regles`.
+
+### Journal de décisions (onglet « Journal » et chaque page action)
+
+Pour chaque décision (achat, renforcement, vente, allègement, attendre, écarter) : la thèse, ce qui ferait changer d'avis, l'objectif de cours, la conviction (1 à 5) et la date de revue (90 jours par défaut). L'appli fige le contexte du moment (cours, score smart money, PER, acheteurs et vendeurs), mesure la suite face à l'ETF de référence (verdict automatique après 7 jours : un achat est « bon » s'il bat l'ETF, une vente s'il fait moins bien), et rappelle les revues dans le SMS de 7h47. La revue enregistre le résultat et la leçon. Routes : `GET/POST /api/journal`, `PATCH/DELETE /api/journal/<id>`.
+
+Ces deux fonctions, comme la liste de suivi, enregistrent vos données sur votre serveur : elles ne sont pas disponibles dans la page instantanée.
+
 **Cours** : Tiingo (offre gratuite ≈ 50 requêtes/heure, 1 000/jour, 500 symboles/mois). Le collecteur `prix` traite 45 actions par passage, les opérations les plus récentes d'abord, et tourne toutes les heures dans `pnpm worker`. Avec ~385 actions, la première couverture complète prend une dizaine d'heures ; ensuite, seules les séances manquantes sont téléchargées. Un symbole inconnu de Tiingo est réessayé une fois par mois. Les synthèses de la table `analyses` sont recalculées après chaque passage ; le détail est calculé à la demande.
 
 ---
@@ -329,7 +339,7 @@ Style « terminal de trading » repris du prototype (`ui-reference/`) : fond som
 
 - En-tête : point « LIVE », horloges UTC / New York / Paris en direct, état du NYSE (9h30–16h00 à New York, hors week-end), dernière publication captée.
 - Bandeau défilant des 40 dernières opérations (pause au survol), effet CRT discret.
-- **9 onglets** : Alertes récentes (fil unifié, recherche, filtres, 8 lignes les plus récentes en surbrillance) · Super-investisseurs · Cathie Wood · Initiés & Musk · Donald Trump · Congrès US · Classement · Portefeuilles miroirs · Ma liste ; et une page par action.
+- **11 onglets** : Alertes récentes (fil unifié, recherche, filtres, 8 lignes les plus récentes en surbrillance) · Super-investisseurs · Cathie Wood · Initiés & Musk · Donald Trump · Congrès US · Classement · Portefeuilles miroirs · Ma liste · Mon portefeuille · Journal ; et une page par action.
 - Dans toutes les tables : symbole en badge suivi du nom réel de la société, opération en pastille verte ou rouge, montants `fr-FR`, dates en français, badge « EDGAR ↗ » vers la déclaration officielle, ligne dépliable avec l'analyse technique.
 - Ligne « Données au … · dernière collecte réussie le … » sur chaque onglet ; mention explicite si la dernière collecte a échoué.
 - Pied de page « D'où viennent les données, et avec quel délai ».

@@ -59,15 +59,15 @@ describe("Cours (Tiingo)", () => {
     process.env.TIINGO_MAX_PER_RUN = "10";
     op("AAA", "2026-03-02"); op("ZZZ", "2026-03-01"); op("QUO", "2026-02-28");
     http.getJson.mockImplementation(async (url: string) => {
-      if (url.includes("/AAA/") || url.includes("/SPY/") || url.includes("/QQQ/")) return bars(400);
+      if (["/AAA/", "/SPY/", "/QQQ/", "/VT/"].some((x) => url.includes(x))) return bars(400);
       if (url.includes("/ZZZ/")) throw new HttpError(url, 404, "inconnu");
       throw new HttpError(url, 429, "quota");
     });
     const r = await collectPrix(db);
     expect(http.getJson.mock.calls[0][1].headers).toEqual({ Authorization: "Token test" });
-    // SPY et QQQ (références de marché) sont téléchargés en premier
-    expect(db.select().from(s.prices).all().length).toBe(1200);
-    expect(Object.fromEntries(db.select().from(s.priceStatus).all().map((x) => [x.ticker, x.statut]))).toEqual({ SPY: "ok", QQQ: "ok", AAA: "ok", ZZZ: "introuvable" });
+    // SPY, QQQ et VT (références de marché) sont téléchargés en premier
+    expect(db.select().from(s.prices).all().length).toBe(1600);
+    expect(Object.fromEntries(db.select().from(s.priceStatus).all().map((x) => [x.ticker, x.statut]))).toEqual({ SPY: "ok", QQQ: "ok", VT: "ok", AAA: "ok", ZZZ: "introuvable" });
     expect(r.details!.join(" ")).toContain("Quota Tiingo atteint");
     expect(db.select().from(s.analyses).get()).toMatchObject({ cleUnique: "k-AAA-2026-03-02", statut: "ok" });
   });

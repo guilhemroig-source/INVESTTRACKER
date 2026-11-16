@@ -288,3 +288,24 @@ html, body { background: #05080d; margin: 0; }
 .tk .chart-filters { flex-wrap: wrap; align-items: center; margin: 0; }
 .tk .tri.up { color: var(--tk-accent); margin-right: 4px; } .tk .tri.dn { color: var(--tk-accent-2); margin-right: 4px; } .tk .dia { color: #9db1ff; margin-right: 4px; }
 .tk .src-toggle { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; text-transform: none; letter-spacing: 0; }
+
+/* Portefeuille et journal */
+.tk .alert-card { border-color: rgba(255,181,71,.35); }
+.tk .alert-card .lectures li::before { content: "⚠ "; color: var(--tk-amber); }
+.tk .rules { flex-direction: column; align-items: stretch; }
+.tk .rules label { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: .85rem; }
+.tk .jform { display: grid; gap: 8px; margin-bottom: 12px; }
+.tk .jtext { font-family: var(--font-anthropic-sans); font-size: .9rem; resize: vertical; width: 100%; box-sizing: border-box; }
+.tk .jdate { display: inline-flex; gap: 6px; align-items: center; font-size: .8rem; }
+.tk .jsmall { font-size: .8rem; color: var(--cds-text-secondary); margin: 4px 0; }
+.tk .jlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.tk .jentry { border: 1px solid var(--color-border-line); border-radius: 8px; padding: 10px 12px; background: #070c13; }
+.tk .jentry.due { border-color: rgba(255,92,92,.45); }
+.tk .jentry.revue { opacity: .85; }
+.tk .jhead { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; font-size: .8rem; }
+.tk .jhead .ev-date { text-align: left; padding: 0; }
+.tk .jthese { margin: 8px 0 4px; font-size: .92rem; line-height: 1.5; color: var(--color-fg); white-space: pre-wrap; }
+.tk .jnums { display: flex; flex-wrap: wrap; gap: 4px 16px; font-family: var(--tk-mono); font-size: .72rem; color: var(--cds-text-secondary); margin: 6px 0; }
+.tk .jreview { margin-top: 6px; }
+.tk .jentry .pill-big { font-size: .62rem; padding: 1px 7px; }
+.tk .jentry .pill-big.buy { color: var(--tk-accent); } .tk .jentry .pill-big.sell { color: var(--tk-accent-2); }

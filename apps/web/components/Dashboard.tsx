@@ -13,6 +13,8 @@ import { Congres } from "./tabs/Congres";
 import { Classement } from "./tabs/Classement";
 import { Miroirs } from "./tabs/Miroirs";
 import { MaListe } from "./tabs/MaListe";
+import { Portefeuille } from "./tabs/Portefeuille";
+import { Journal } from "./tabs/Journal";
 import { ActionView } from "./action/ActionView";
 import { tickerFromHash } from "@/lib/snapshot";
 import { acteurOf } from "@tracker/core/fiche";
@@ -28,6 +30,8 @@ const TABS = [
   ["classement", "Classement"],
   ["miroirs", "Portefeuilles miroirs"],
   ["liste", "Ma liste"],
+  ["portefeuille", "Mon portefeuille"],
+  ["journal", "Journal"],
 ] as const;
 type TabId = (typeof TABS)[number][0];
 
@@ -71,6 +75,8 @@ export function Dashboard({ data, today }: { data: DashboardData; today: string 
       {tab === "classement" && <Classement />}
       {tab === "miroirs" && <Miroirs />}
       {tab === "liste" && <MaListe acteurs={acteurs} analyses={data.analyses} tickers={data.tickers} />}
+      {tab === "portefeuille" && <Portefeuille />}
+      {tab === "journal" && <Journal />}
       </>}
       <Footer />
     </div>

@@ -29,10 +29,14 @@ export const collectPrix: Collector = async (db) => {
       MIN(COALESCE(date_operation, date_publication)) AS first,
       MAX(COALESCE(date_operation, date_publication)) AS last,
       MAX(date_publication) AS pub
-    FROM operations GROUP BY ticker ORDER BY pub DESC`);
+    FROM (
+      SELECT ticker, date_operation, date_publication FROM operations
+      UNION ALL SELECT ticker, date AS date_operation, date AS date_publication FROM portfolio_tx -- actions de « Mon portefeuille »
+    ) GROUP BY ticker ORDER BY pub DESC`);
   // Indices de référence (S&P 500, Nasdaq 100) pour situer chaque action dans son marché
   const span = needs.reduce((a, n) => ({ first: n.first < a.first ? n.first : a.first, last: n.last > a.last ? n.last : a.last, pub: a.pub }), { first: "9999", last: "0000", pub: "9999" });
-  if (needs.length) needs.unshift({ ticker: "SPY", ...span }, { ticker: "QQQ", ...span });
+  // VT : ETF monde (Vanguard Total World), référence pour comparer « Mon portefeuille »
+  if (needs.length) needs.unshift({ ticker: "SPY", ...span }, { ticker: "QQQ", ...span }, { ticker: "VT", ...span });
   const status = new Map(db.select().from(s.priceStatus).all().map((r) => [r.ticker, r]));
 
   const todo: { ticker: string; start: string; full: boolean }[] = [];

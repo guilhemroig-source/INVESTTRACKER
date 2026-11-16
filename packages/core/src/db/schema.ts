@@ -365,3 +365,44 @@ export const watchState = sqliteTable("watch_state", {
   id: integer("id").primaryKey(),
   dernierPassage: text("dernier_passage").notNull(),
 });
+
+/** Mon portefeuille : transactions saisies par l'utilisateur (achat, vente, dividende). */
+export const portfolioTx = sqliteTable("portfolio_tx", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  date: text("date").notNull(),
+  type: text("type").notNull(), // 'achat' | 'vente' | 'dividende'
+  ticker: text("ticker").notNull(),
+  quantite: real("quantite").notNull().default(0),
+  prix: real("prix").notNull().default(0), // prix unitaire en dollars (dividende : montant total)
+  frais: real("frais").notNull().default(0),
+  compte: text("compte").notNull().default("CTO"), // 'CTO' | 'PEA' | 'Assurance-vie' | 'Autre'
+  note: text("note"),
+  creeLe: text("cree_le").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+/** Journal de décisions : pourquoi, à quel prix, ce qui ferait changer d'avis, et la revue a posteriori. */
+export const journal = sqliteTable("journal", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  date: text("date").notNull(),
+  ticker: text("ticker").notNull(),
+  decision: text("decision").notNull(), // 'achat' | 'renforcement' | 'vente' | 'allegement' | 'attendre' | 'ecarter'
+  these: text("these").notNull(),
+  invalidation: text("invalidation"),
+  objectif: real("objectif"),
+  prixDecision: real("prix_decision"),
+  conviction: integer("conviction"), // 1 à 5
+  dateRevue: text("date_revue"),
+  /** Contexte figé au moment de la décision (score smart money, PER, acheteurs…) en JSON. */
+  contexte: text("contexte"),
+  statut: text("statut").notNull().default("ouverte"), // 'ouverte' | 'revue'
+  resultat: text("resultat"), // 'bonne' | 'mauvaise' | 'mitigee'
+  lecon: text("lecon"),
+  revueLe: text("revue_le"),
+  creeLe: text("cree_le").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+/** Réglages simples (clé / valeur), ex. règles de risque du portefeuille. */
+export const settings = sqliteTable("settings", {
+  cle: text("cle").primaryKey(),
+  valeur: text("valeur").notNull(),
+});

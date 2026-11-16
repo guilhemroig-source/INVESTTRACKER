@@ -8,6 +8,7 @@ import { ExpandableRow } from "../analysis/ExpandableRow";
 import { FicheView } from "../analysis/FicheView";
 import { WatchButton } from "../WatchButton";
 import { PriceChart } from "./PriceChart";
+import { JournalPanel } from "../journal/JournalPanel";
 
 const ITEMS: Record<string, string> = { "1.01": "Accord important", "2.01": "Acquisition / cession", "2.02": "Résultats", "5.02": "Dirigeants", "7.01": "Communication", "8.01": "Autre événement", "1.05": "Cybersécurité", "2.05": "Restructuration", "5.07": "Vote des actionnaires", "3.02": "Émission d'actions" };
 
@@ -97,6 +98,12 @@ export function ActionView({ ticker, analyses, onClose }: { ticker: string; anal
             {!press.length && <li className="muted">Pas encore d&apos;article collecté.</li>}
           </ol>
         </div>
+      </div>
+
+      <div className="card">
+        <h2>Mes décisions sur {d.ticker}</h2>
+        <p className="note">Notez pourquoi vous achetez, vendez ou attendez, et ce qui vous ferait changer d&apos;avis ; l&apos;appli fige le contexte et mesure la suite.</p>
+        <JournalPanel ticker={d.ticker} cours={last?.close ?? null} />
       </div>
 
       <h2 className="section-title">Fiche {d.ticker}</h2>
