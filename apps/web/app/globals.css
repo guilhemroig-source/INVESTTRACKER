@@ -259,3 +259,32 @@ html, body { background: #05080d; margin: 0; }
 .tk .score-pill.s1 { color: var(--color-fg); }
 .tk .score-pill.s2 { color: var(--tk-amber); border-color: rgba(255,181,71,.4); }
 .tk .score-pill.s3 { color: #04110a; background: var(--tk-accent); border-color: var(--tk-accent); }
+
+/* Symbole cliquable, page action, suivi */
+.tk a.sym-link { text-decoration: none; cursor: pointer; }
+.tk a.sym-link:hover { background: #22303f; box-shadow: 0 0 0 1px rgba(255,181,71,.5); }
+.tk .sym.big { font-size: 1.3rem; padding: 3px 10px; }
+.tk .action-page .card { margin-bottom: var(--cds-gap-md); }
+.tk .action-page .grid { margin-bottom: 0; }
+.tk .action-page .grid > .card { margin-bottom: var(--cds-gap-md); }
+.tk .action-head { display: flex; flex-direction: column; gap: 12px; }
+.tk .action-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; }
+.tk .action-head .action-name { text-transform: none; font-family: var(--font-anthropic-serif); font-weight: 400; font-size: clamp(1.5rem, 3vw, 2.2rem); margin: 0; color: #f3f6fa; letter-spacing: -.01em; }
+.tk .action-head .action-name::before { content: none; }
+.tk .action-px { font-family: var(--tk-mono); font-size: 1rem; color: var(--color-fg); }
+.tk .action-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; font-size: .85rem; }
+.tk .section-title { font-family: var(--tk-mono); font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; color: #f3f6fa; margin: 8px 0 12px; }
+.tk .section-title::before { content: "// "; color: var(--tk-accent); }
+.tk .watch-btn { font-family: var(--tk-mono); font-size: .7rem; font-weight: 700; letter-spacing: .05em; padding: 6px 10px; border-radius: 6px; border: 1px solid #2a3647; background: #070c13; color: var(--color-fg); cursor: pointer; width: fit-content; }
+.tk .watch-btn:hover { border-color: var(--tk-amber); }
+.tk .watch-btn.on { color: #04110a; background: var(--tk-amber); border-color: var(--tk-amber); }
+.tk .watch-btn.off { color: var(--color-fg-muted); cursor: default; display: inline-block; }
+.tk .watch-btn:focus-visible { outline: 1px solid var(--tk-accent); }
+.tk .watch-list li { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid #111927; }
+.tk .watch-del { margin-left: auto; font-family: var(--tk-mono); font-size: .65rem; background: none; border: 1px solid #2a3647; color: var(--color-fg-muted); border-radius: 4px; padding: 2px 8px; cursor: pointer; }
+.tk .watch-del:hover { color: var(--tk-accent-2); border-color: rgba(255,92,92,.4); }
+.tk .watch-form { align-items: center; }
+.tk .chart-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.tk .chart-filters { flex-wrap: wrap; align-items: center; margin: 0; }
+.tk .tri.up { color: var(--tk-accent); margin-right: 4px; } .tk .tri.dn { color: var(--tk-accent-2); margin-right: 4px; } .tk .dia { color: #9db1ff; margin-right: 4px; }
+.tk .src-toggle { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; text-transform: none; letter-spacing: 0; }

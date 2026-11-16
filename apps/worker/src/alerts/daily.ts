@@ -1,4 +1,4 @@
-import { type Db, next13FDeadline, schema as s } from "@tracker/core";
+import { type Db, next13FDeadline, schema as s, watchMatches } from "@tracker/core";
 import { and, desc, gt, gte, inArray, sql } from "drizzle-orm";
 import { ALL_ORDER } from "../collectors";
 
@@ -81,6 +81,9 @@ export function buildDailySms(db: Db, now = new Date()): string {
   if (ini.length) hier.push(`Inities ${ini.join(", ")}`);
   if (elus) hier.push(`Elus ${elus} nouvelle${elus > 1 ? "s" : ""} transaction${elus > 1 ? "s" : ""}`);
   parts.push(hier.length ? `Hier : ${hier.join(" | ")}.` : "Rien de nouveau hier.");
+  // Liste de suivi
+  const suivi = watchMatches(db, since, today);
+  if (suivi.length) parts.push(`Ta liste : ${suivi.length} mouvement${suivi.length > 1 ? "s" : ""} (${[...new Set(suivi.map((m) => m.ticker))].slice(0, 6).join(", ")}).`);
   const next = next13FDeadline(today);
   parts.push(`Prochaine echeance : 13F ${next.trimestre} le ${ddmm(next.limite)}.`);
   for (const f of failedSources(db, since)) parts.push(`${f}.`);

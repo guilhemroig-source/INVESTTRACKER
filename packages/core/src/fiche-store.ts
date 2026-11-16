@@ -2,7 +2,7 @@ import { desc, eq, gte, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
 import * as s from "./db/schema";
 import { barsOf } from "./analysis-store";
-import { type Fiche, type OpLite, type TrackRecord, acteurOf, finances, isCompensation, risque, smartMoney } from "./fiche";
+import { type Fiche, type MirrorOp, type MirrorResult, type OpLite, type TrackRecord, acteurOf, finances, isCompensation, isMirrorBuy, mirrorFor, risque, smartMoney } from "./fiche";
 
 /** Historique de réussite : évolution moyenne du cours 20 et 60 séances après les achats de chaque investisseur. */
 export function trackRecords(db: Db): Map<string, TrackRecord> {
@@ -68,3 +68,58 @@ export function getClassement(db: Db, today: string): ClassementRow[] {
   }).sort((a, b) => b.score - a.score || b.acheteurs.length - a.acheteurs.length || b.derniere.localeCompare(a.derniere));
 }
 export { gte };
+
+// ------------------------------------------------------------------ Portefeuilles miroirs
+
+function allOps(db: Db): MirrorOp[] {
+  return db.all<MirrorOp>(sql`
+    SELECT o.ticker, COALESCE(o.societe, t.nom) AS societe, o.source, o.sens, o.qui, o.operation, o.date_publication AS datePublication,
+           o.date_operation AS dateOperation, o.montant_usd AS montantUsd, r.trimestre AS trimestre
+    FROM operations o LEFT JOIN raw_13f r ON r.cle_unique = o.cle_unique LEFT JOIN tickers t ON t.ticker = o.ticker`);
+}
+
+function barsCache(db: Db) {
+  const m = new Map<string, ReturnType<typeof barsOf>>();
+  return (t: string) => { if (!m.has(t)) m.set(t, barsOf(db, t)); return m.get(t)!; };
+}
+
+export type MirrorSummary = Omit<MirrorResult, "trades" | "courbe">;
+
+/** Portefeuille miroir de chaque investisseur ayant au moins un achat (résumé, sans le détail des positions). */
+export function getMirrors(db: Db): MirrorSummary[] {
+  const ops = allOps(db);
+  const bars = barsCache(db);
+  const spy = bars("SPY");
+  const acteurs = [...new Set(ops.filter(isMirrorBuy).map(acteurOf))];
+  return acteurs.map((a) => { const { trades: _t, courbe: _c, ...rest } = mirrorFor(a, ops, bars, spy); return rest; })
+    .sort((x, y) => (y.couverts > 0 ? 1 : 0) - (x.couverts > 0 ? 1 : 0) || (y.excedentMoyen ?? -9) - (x.excedentMoyen ?? -9));
+}
+
+/** Détail d'un portefeuille miroir : positions et courbe face au S&P 500. */
+export function getMirror(db: Db, acteur: string): MirrorResult {
+  const bars = barsCache(db);
+  return mirrorFor(acteur, allOps(db), bars, bars("SPY"), { courbe: true });
+}
+
+// ------------------------------------------------------------------ Page action
+
+export interface ActionData {
+  ticker: string; societe: string | null;
+  bars: { date: string; close: number; volume: number }[];
+  ops: (typeof s.operations.$inferSelect)[];
+  news: { date: string; kind: string; titre: string; resume: string | null; source: string | null; url: string | null; items: string | null; ton: number | null }[];
+  fiche: Fiche;
+  suivi: { id: number; type: string; valeur: string }[];
+}
+
+/** Tout ce qu'il faut pour la page d'une action. */
+export function getActionData(db: Db, ticker: string, today: string): ActionData {
+  const ops = db.select().from(s.operations).where(eq(s.operations.ticker, ticker)).orderBy(desc(s.operations.datePublication)).all();
+  const societe = ops.find((o) => o.societe)?.societe ?? db.select({ n: s.tickers.nom }).from(s.tickers).where(eq(s.tickers.ticker, ticker)).get()?.n ?? null;
+  const bars = barsOf(db, ticker).map((b) => ({ date: b.date, close: b.close, volume: b.volume }));
+  const news = db.select({ date: s.newsItems.date, kind: s.newsItems.kind, titre: s.newsItems.titre, resume: s.newsItems.resume, source: s.newsItems.source, url: s.newsItems.url, items: s.newsItems.items, ton: s.newsItems.ton })
+    .from(s.newsItems).where(eq(s.newsItems.ticker, ticker)).orderBy(desc(s.newsItems.date)).all();
+  const acteurs = new Set(ops.map(acteurOf));
+  const suivi = db.select().from(s.watchlist).all().filter((w) => (w.type === "action" && w.valeur === ticker) || (w.type === "investisseur" && acteurs.has(w.valeur))).map((w) => ({ id: w.id, type: w.type, valeur: w.valeur }));
+  return { ticker, societe, bars, ops, news, fiche: getFiche(db, ticker, today), suivi };
+}

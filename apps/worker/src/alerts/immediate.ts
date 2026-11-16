@@ -4,6 +4,7 @@ import { collectEdgarMusk } from "../collectors/edgar-musk";
 import { filingsByPeriod } from "../collectors/thirteenf";
 import { ascii } from "./daily";
 import { sendSms } from "../sms/providers";
+import { runWatchAlerts } from "./watch";
 
 /**
  * Alerte immédiate (hors 7h47) : nouveau formulaire 4 de Musk, ou nouveau 13F-HR d'un fonds suivi sur EDGAR.
@@ -35,5 +36,7 @@ export async function runImmediateCheck(db: Db, opts: { dryRun?: boolean } = {})
     if (!opts.dryRun) await sendSms(db, "immediat", text);
     sent.push(text);
   }
+  // Liste de suivi (nouvelles opérations Musk / 13F de cette vérification)
+  if (!opts.dryRun) { const w = await runWatchAlerts(db); sent.push(...w.textes); }
   return { sent, muskOk: musk.ok };
 }

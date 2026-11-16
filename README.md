@@ -275,6 +275,18 @@ Sous chaque opération, l'onglet « Fiche » (et l'onglet **Classement** du tabl
 
 Le classement trie les ~300 actions traitées ces 90 derniers jours par score (tri possible sur chaque colonne) ; il est calculé à l'ouverture de l'onglet (`/api/classement`). Un score élevé signale l'intérêt des investisseurs suivis, pas une recommandation.
 
+### Portefeuilles miroirs (onglet « Portefeuilles miroirs »)
+
+Pour chaque investisseur : un suiveur qui copie chacun de ses achats **au moment où il est publié** (clôture de la première séance après la publication), avec 1 000 $ par achat, et revend quand l'investisseur publie sa vente (sinon : position gardée jusqu'au dernier cours). Comparaison avec les mêmes montants placés sur le S&P 500 (SPY) aux mêmes dates. Indicateurs : gain du portefeuille, gain du S&P 500, écart moyen par achat, part d'achats gagnants, évolution moyenne à +60 séances, **coût du délai de publication** (gain supplémentaire d'un achat au jour même de l'opération). Détail : courbe face au S&P 500 et liste des positions. Ventes de rémunération exclues ; seuls les achats dont les cours sont disponibles sont simulés.
+
+### Liste de suivi (onglet « Ma liste », boutons « Suivre »)
+
+Trois types de règles : une **action** (achats, ventes ou les deux), un **investisseur**, un **seuil de score smart money**. Après chaque collecte, les nouvelles opérations qui correspondent partent dans un SMS groupé (jamais deux fois la même), et le SMS de 7h47 ajoute « Ta liste : N mouvements ». Les ventes de rémunération ne déclenchent pas d'alerte « investisseur ». Routes : `GET/POST /api/watchlist`, `DELETE /api/watchlist/<id>`.
+
+### Page action (`#action-NVDA`, clic sur n'importe quel symbole)
+
+Cours ajusté (3 mois, 6 mois, 1 an, tout) avec les achats ▲ et ventes ▼ des investisseurs (initiale de la source, filtres par source, infobulle de la journée) et les annonces officielles ◆ ; toutes les opérations sur l'action (dépliables) ; annonces 8-K et presse ; fiche complète ; bouton « Suivre ».
+
 **Cours** : Tiingo (offre gratuite ≈ 50 requêtes/heure, 1 000/jour, 500 symboles/mois). Le collecteur `prix` traite 45 actions par passage, les opérations les plus récentes d'abord, et tourne toutes les heures dans `pnpm worker`. Avec ~385 actions, la première couverture complète prend une dizaine d'heures ; ensuite, seules les séances manquantes sont téléchargées. Un symbole inconnu de Tiingo est réessayé une fois par mois. Les synthèses de la table `analyses` sont recalculées après chaque passage ; le détail est calculé à la demande.
 
 ---
@@ -317,7 +329,7 @@ Style « terminal de trading » repris du prototype (`ui-reference/`) : fond som
 
 - En-tête : point « LIVE », horloges UTC / New York / Paris en direct, état du NYSE (9h30–16h00 à New York, hors week-end), dernière publication captée.
 - Bandeau défilant des 40 dernières opérations (pause au survol), effet CRT discret.
-- **6 onglets** : Alertes récentes (fil unifié, recherche, filtres, 8 lignes les plus récentes en surbrillance) · Super-investisseurs · Cathie Wood · Initiés & Musk · Donald Trump · Congrès US.
+- **9 onglets** : Alertes récentes (fil unifié, recherche, filtres, 8 lignes les plus récentes en surbrillance) · Super-investisseurs · Cathie Wood · Initiés & Musk · Donald Trump · Congrès US · Classement · Portefeuilles miroirs · Ma liste ; et une page par action.
 - Dans toutes les tables : symbole en badge suivi du nom réel de la société, opération en pastille verte ou rouge, montants `fr-FR`, dates en français, badge « EDGAR ↗ » vers la déclaration officielle, ligne dépliable avec l'analyse technique.
 - Ligne « Données au … · dernière collecte réussie le … » sur chaque onglet ; mention explicite si la dernière collecte a échoué.
 - Pied de page « D'où viennent les données, et avec quel délai ».

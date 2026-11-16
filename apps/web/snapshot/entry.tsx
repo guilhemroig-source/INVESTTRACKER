@@ -1,7 +1,7 @@
 // Point d'entrée de la version « instantané » : le tableau de bord complet, sans serveur, données intégrées à la page.
 import { createRoot } from "react-dom/client";
 import { analyzeTrade, type Bar, type TradeInput } from "@tracker/core/ta";
-import type { ClassementRow, DashboardData, Fiche, NewsAnalysis } from "@tracker/core";
+import type { ActionData, ClassementRow, DashboardData, Fiche, MirrorResult, MirrorSummary, NewsAnalysis } from "@tracker/core";
 import { Dashboard } from "@/components/Dashboard";
 import { fmtDate } from "@/lib/format";
 
@@ -14,6 +14,9 @@ interface Payload {
   trades: Record<string, TradeInput & { ticker: string; news?: NewsAnalysis }>;
   classement: ClassementRow[];
   fiches: Record<string, Fiche>;
+  miroirs: MirrorSummary[];
+  miroirDetails: Record<string, MirrorResult>;
+  newsByTicker: Record<string, ActionData["news"]>;
 }
 
 const P = JSON.parse(document.getElementById("tracker-data")!.textContent!) as Payload;
@@ -28,6 +31,22 @@ const barsOf = (t: string): Bar[] => {
 
 (globalThis as unknown as { __TRACKER_SNAPSHOT__: unknown }).__TRACKER_SNAPSHOT__ = {
   classement: P.classement,
+  miroirs: P.miroirs,
+  miroir: (a: string) => {
+    if (P.miroirDetails[a]) return P.miroirDetails[a];
+    const m = P.miroirs.find((x) => x.acteur === a);
+    return m ? { ...m, trades: [], courbe: [] } : null;
+  },
+  action: (t: string): ActionData | null => {
+    const ops = P.data.operations.filter((o) => o.ticker === t);
+    const fiche = P.fiches[t];
+    if (!ops.length || !fiche) return null;
+    return {
+      ticker: t, societe: ops.find((o) => o.societe)?.societe ?? P.data.tickers[t] ?? null,
+      bars: barsOf(t).map((b) => ({ date: b.date, close: b.close, volume: b.volume })),
+      ops, news: P.newsByTicker[t] ?? [], fiche, suivi: [],
+    };
+  },
   fiche: (t: string) => P.fiches[t] ?? null,
   analyse(cle: string) {
     const t = P.trades[cle];

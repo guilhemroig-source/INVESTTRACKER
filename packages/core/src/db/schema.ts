@@ -349,3 +349,19 @@ export const fundamentals = sqliteTable("fundamentals", {
   statut: text("statut").notNull(), // 'ok' | 'indisponible' | 'erreur'
   erreur: text("erreur"),
 });
+
+/** Liste de suivi : actions, investisseurs ou seuil de score à surveiller (alertes SMS). */
+export const watchlist = sqliteTable("watchlist", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  type: text("type").notNull(), // 'action' | 'investisseur' | 'score'
+  valeur: text("valeur").notNull(), // symbole, nom d'investisseur, ou seuil de score
+  sens: text("sens").notNull().default("tous"), // 'tous' | 'achat' | 'vente'
+  actif: integer("actif", { mode: "boolean" }).notNull().default(true),
+  creeLe: text("cree_le").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+/** Dernier passage de la vérification de la liste de suivi (pour ne signaler que les nouveautés). */
+export const watchState = sqliteTable("watch_state", {
+  id: integer("id").primaryKey(),
+  dernierPassage: text("dernier_passage").notNull(),
+});

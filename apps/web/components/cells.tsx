@@ -1,10 +1,11 @@
 import { fmtDate, sensClass } from "@/lib/format";
+import { actionHash } from "@/lib/snapshot";
 
 /** Symbole en badge ambre, suivi du nom réel de la société. */
-export function Sym({ t, name }: { t: string; name?: string | null }) {
+export function Sym({ t, name, link = true }: { t: string; name?: string | null; link?: boolean }) {
   return (
     <>
-      <span className="sym">{t}</span>
+      {link ? <a className="sym sym-link" href={actionHash(t)} title={`Page ${t} : cours annoté, opérations, fiche`}>{t}</a> : <span className="sym">{t}</span>}
       {name ? <span className="co">{name}</span> : null}
     </>
   );

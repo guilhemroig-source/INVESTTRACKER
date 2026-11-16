@@ -6,6 +6,7 @@ import { ALL_ORDER, COLLECTORS } from "./collectors";
 import type { CollectResult } from "./collectors/types";
 import { buildDailySms } from "./alerts/daily";
 import { runImmediateCheck } from "./alerts/immediate";
+import { runWatchAlerts } from "./alerts/watch";
 import { providersFromEnv, sendSms } from "./sms/providers";
 import { startScheduler } from "./scheduler";
 
@@ -37,6 +38,9 @@ async function collectAll(): Promise<number> {
       if (await collect("edgar-insiders")) failed--; // le secours a pris le relais
     }
   }
+  // Alertes de la liste de suivi sur les nouveautés de cette collecte
+  const w = await runWatchAlerts(getDb());
+  if (w.textes.length) console.log(`  → liste de suivi : ${w.textes.length} alerte(s)${w.sent ? " envoyée(s)" : ""}`);
   return failed;
 }
 

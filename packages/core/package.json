@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./deadlines": "./src/deadlines.ts",
-    "./ta": "./src/ta/index.ts"
+    "./ta": "./src/ta/index.ts",
+    "./fiche": "./src/fiche/index.ts"
   },
   "scripts": {
     "db:generate": "drizzle-kit generate",

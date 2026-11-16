@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { build } from "esbuild";
-import { barsOf, getClassement, getDashboardData, getDb, getFiche, newsAnalysisFor, schema as s, todayParis, trackRecords, tradeInput } from "@tracker/core";
+import { barsOf, getClassement, getDashboardData, getDb, getFiche, getMirror, getMirrors, newsAnalysisFor, schema as s, todayParis, trackRecords, tradeInput } from "@tracker/core";
 
 const out = path.resolve(process.argv[2] ?? "snapshot.html");
 const webDir = path.resolve(import.meta.dirname, "..");
@@ -33,6 +33,17 @@ const track = trackRecords(db);
 const fiches: Record<string, unknown> = {};
 for (const t of new Set(db.select({ t: s.operations.ticker }).from(s.operations).all().map((x) => x.t))) fiches[t] = getFiche(db, t, today, track);
 
+// Portefeuilles miroirs (résumés + détail de ceux qui ont des positions calculables)
+const miroirs = getMirrors(db);
+const miroirDetails: Record<string, unknown> = {};
+for (const m of miroirs.filter((x) => x.couverts > 0)) miroirDetails[m.acteur] = getMirror(db, m.acteur);
+// Annonces et presse par action (pages action)
+const newsByTicker: Record<string, unknown[]> = {};
+for (const n of db.select({ ticker: s.newsItems.ticker, date: s.newsItems.date, kind: s.newsItems.kind, titre: s.newsItems.titre, resume: s.newsItems.resume, source: s.newsItems.source, url: s.newsItems.url, items: s.newsItems.items, ton: s.newsItems.ton }).from(s.newsItems).all()) {
+  (newsByTicker[n.ticker] ??= []).push(n);
+}
+for (const k of Object.keys(newsByTicker)) (newsByTicker[k] as { date: string }[]).sort((a, b) => b.date.localeCompare(a.date));
+
 const bundle = await build({
   entryPoints: [path.join(webDir, "snapshot/entry.tsx")],
   bundle: true, minify: true, format: "iife", write: false, platform: "browser", target: "es2020",
@@ -44,7 +55,7 @@ const js = bundle.outputFiles[0].text.replace(/<\/script/gi, "<\\/script");
 const cssDir = path.join(webDir, ".next/static/css");
 const css = fs.readdirSync(cssDir).filter((f) => f.endsWith(".css")).map((f) => fs.readFileSync(path.join(cssDir, f), "utf8")).join("\n");
 
-const payload = JSON.stringify({ data, today, genereLe: new Date().toISOString(), prices, trades, classement, fiches }).replace(/</g, "\\u003c");
+const payload = JSON.stringify({ data, today, genereLe: new Date().toISOString(), prices, trades, classement, fiches, miroirs, miroirDetails, newsByTicker }).replace(/</g, "\\u003c");
 
 const html = `<title>Tracker des grands investisseurs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">

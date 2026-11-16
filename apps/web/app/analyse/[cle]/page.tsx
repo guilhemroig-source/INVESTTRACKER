@@ -19,7 +19,7 @@ export default async function AnalysePage({ params }: { params: Promise<{ cle: s
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="op-head">
           <div>
-            <div style={{ fontSize: "1.35rem", marginBottom: 6 }}><Sym t={op.ticker} name={societe} /></div>
+            <div style={{ fontSize: "1.35rem", marginBottom: 6 }}><Sym t={op.ticker} name={societe} link={false} /></div>
             <div><Who qui={op.qui} /></div>
           </div>
           <div className="op-facts">

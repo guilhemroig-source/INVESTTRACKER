@@ -11,6 +11,12 @@ import { Inities } from "./tabs/Inities";
 import { Trump } from "./tabs/Trump";
 import { Congres } from "./tabs/Congres";
 import { Classement } from "./tabs/Classement";
+import { Miroirs } from "./tabs/Miroirs";
+import { MaListe } from "./tabs/MaListe";
+import { ActionView } from "./action/ActionView";
+import { tickerFromHash } from "@/lib/snapshot";
+import { acteurOf } from "@tracker/core/fiche";
+import { useMemo } from "react";
 
 const TABS = [
   ["alertes", "Alertes récentes"],
@@ -20,14 +26,19 @@ const TABS = [
   ["trump", "Donald Trump"],
   ["congres", "Congrès US"],
   ["classement", "Classement"],
+  ["miroirs", "Portefeuilles miroirs"],
+  ["liste", "Ma liste"],
 ] as const;
 type TabId = (typeof TABS)[number][0];
 
 export function Dashboard({ data, today }: { data: DashboardData; today: string }) {
   const [tab, setTab] = useState<TabId>("alertes");
+  const [action, setAction] = useState<string | null>(null);
+  const acteurs = useMemo(() => [...new Set(data.operations.map((o) => acteurOf(o)))].sort((a, b) => a.localeCompare(b, "fr")), [data.operations]);
   useEffect(() => {
     const sync = () => {
       const h = window.location.hash.slice(1);
+      setAction(tickerFromHash(h));
       if (TABS.some(([id]) => id === h)) setTab(h as TabId);
     };
     sync();
@@ -36,6 +47,7 @@ export function Dashboard({ data, today }: { data: DashboardData; today: string 
   }, []);
   const go = (id: TabId) => {
     setTab(id);
+    setAction(null);
     history.replaceState(null, "", `#${id}`);
   };
   const first = data.operations[0];
@@ -46,9 +58,10 @@ export function Dashboard({ data, today }: { data: DashboardData; today: string 
       <Tape ops={data.operations} />
       <div className="tabs" role="tablist">
         {TABS.map(([id, label]) => (
-          <button key={id} className="tab" role="tab" aria-selected={tab === id} onClick={() => go(id)}>{label}</button>
+          <button key={id} className="tab" role="tab" aria-selected={!action && tab === id} onClick={() => go(id)}>{label}</button>
         ))}
       </div>
+      {action ? <ActionView ticker={action} analyses={data.analyses} onClose={() => go(tab)} /> : <>
       {tab === "alertes" && <Alertes data={data} />}
       {tab === "fonds" && <Fonds data={data} today={today} />}
       {tab === "ark" && <Ark data={data} />}
@@ -56,6 +69,9 @@ export function Dashboard({ data, today }: { data: DashboardData; today: string 
       {tab === "trump" && <Trump data={data} />}
       {tab === "congres" && <Congres data={data} />}
       {tab === "classement" && <Classement />}
+      {tab === "miroirs" && <Miroirs />}
+      {tab === "liste" && <MaListe acteurs={acteurs} analyses={data.analyses} tickers={data.tickers} />}
+      </>}
       <Footer />
     </div>
   );

@@ -11,3 +11,4 @@ export * from "./analysis-store";
 export * from "./news";
 export * from "./fiche";
 export * from "./fiche-store";
+export * from "./watch-store";

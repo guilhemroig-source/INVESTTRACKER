@@ -57,6 +57,13 @@
       "when": 1794847040175,
       "tag": "0007_fiche",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1794851130163,
+      "tag": "0008_suivi",
+      "breakpoints": true
     }
   ]
 }
