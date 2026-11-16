@@ -1,5 +1,5 @@
 # Tracker des grands investisseurs : appli web + planificateur dans un seul conteneur.
-# La base SQLite vit sur un volume monté en /data (DATABASE_PATH).
+# La base SQLite vit sur un volume Railway monté en /data (DATABASE_PATH).
 FROM node:22-bookworm-slim
 
 # Outils de compilation, au cas où le binaire précompilé de better-sqlite3 manquerait
@@ -15,5 +15,4 @@ ENV NODE_ENV=production \
     DATABASE_PATH=/data/tracker.db \
     PORT=3000
 EXPOSE 3000
-VOLUME ["/data"]
 CMD ["node", "scripts/start-all.mjs"]
