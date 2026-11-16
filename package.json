@@ -1,0 +1,23 @@
+{
+  "name": "tracker-grands-investisseurs",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @tracker/web dev",
+    "build": "pnpm --filter @tracker/web build",
+    "start": "pnpm --filter @tracker/web start",
+    "db:generate": "pnpm --filter @tracker/core db:generate",
+    "db:migrate": "pnpm --filter @tracker/worker exec tsx src/cli.ts migrate",
+    "import-data": "pnpm --filter @tracker/worker exec tsx src/cli.ts import",
+    "collect": "pnpm --filter @tracker/worker exec tsx src/cli.ts collect",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r --if-present test",
+    "sms": "pnpm --filter @tracker/worker exec tsx src/cli.ts sms",
+    "immediat": "pnpm --filter @tracker/worker exec tsx src/cli.ts immediat",
+    "worker": "pnpm --filter @tracker/worker exec tsx src/cli.ts worker"
+  }
+}

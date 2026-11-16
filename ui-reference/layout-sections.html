@@ -1,0 +1,135 @@
+  <h1 id="top">Tracker des grands investisseurs</h1>
+  <p class="lead">Buffett, Musk, Cathie Wood, Trump, les élus du Congrès… Dernière publication captée le <b data-draw="f-lastdate" data-source="flux" data-field="date_publication" data-row="0">—</b> (<b data-draw="f-lastwho" data-source="flux" data-field="qui" data-row="0">—</b>). Les initiés et ARK sont publiés en un à deux jours ; les fonds (13F), Trump et les élus le sont jusqu'à 45 jours après coup.</p>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="alertes" aria-selected="true">Alertes récentes</button>
+    <button class="tab" role="tab" data-tab="fonds" aria-selected="false">Super-investisseurs</button>
+    <button class="tab" role="tab" data-tab="ark" aria-selected="false">Cathie Wood (ARK)</button>
+    <button class="tab" role="tab" data-tab="inities" aria-selected="false">Initiés &amp; Musk</button>
+    <button class="tab" role="tab" data-tab="trump" aria-selected="false">Donald Trump</button>
+    <button class="tab" role="tab" data-tab="congres" aria-selected="false">Congrès US</button>
+  </div>
+
+  <section id="alertes" data-page="alertes">
+    <div class="card" id="f-flux">
+      <h2>Toutes les publications, les plus récentes d'abord</h2>
+      <p class="note">Un fil unique qui réunit toutes les sources, trié par date de publication. Le montant est exact pour ARK et les initiés, une fourchette pour Trump et les élus ; les 13F ne donnent que le nombre d'actions.</p>
+      <div class="controls">
+        <input class="search lx-fq" type="search" placeholder="Rechercher une action ou un nom (ex. NVDA, Buffett)" aria-label="Rechercher une action ou un nom">
+        <select class="dash-select lx-fcat" aria-label="Catégorie">
+          <option value="">Toutes les sources</option>
+          <option value="Super-investisseur">Super-investisseurs (13F)</option>
+          <option value="ARK">Cathie Wood (ARK)</option>
+          <option value="Initié">Initiés (Form 4)</option>
+          <option value="Tesla">Tesla / Musk</option>
+          <option value="Trump">Donald Trump</option>
+          <option value="Congrès">Congrès US</option>
+        </select>
+        <select class="dash-select lx-fop" aria-label="Sens">
+          <option value="">Achats et ventes</option>
+          <option value="achat">Achats</option>
+          <option value="vente">Ventes</option>
+        </select>
+      </div>
+      <div class="scroll tall">
+        <table data-source="flux" data-row-key="cle">
+          <thead><tr><th data-field="date_publication">Publié</th><th data-field="qui">Qui</th><th data-field="ticker">Action</th><th data-field="operation">Opération</th><th data-field="montant_usd" class="r">Montant</th><th data-field="volume" class="r hide-sm">Volume</th><th data-field="date_operation" class="r hide-sm">Opération le</th></tr></thead>
+          <tbody data-draw="f-rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="fonds" data-page="fonds" hidden>
+    <div class="tiles">
+      <div class="tile"><div class="lbl">Investisseurs suivis</div><div class="num" data-draw="s-n" data-source="sup_totals" data-field="investisseurs" data-row="0">—</div></div>
+      <div class="tile"><div class="lbl">Mouvements déclarés</div><div class="num" data-draw="s-mv" data-source="sup_totals" data-field="mouvements" data-row="0">—</div></div>
+      <div class="tile"><div class="lbl">Nouvelles positions</div><div class="num buy" data-draw="s-new" data-source="sup_totals" data-field="nouvelles" data-row="0">—</div></div>
+      <div class="tile"><div class="lbl">Sorties totales</div><div class="num sell" data-draw="s-out" data-source="sup_totals" data-field="sorties" data-row="0">—</div></div>
+    </div>
+    <div class="grid">
+      <div class="card" id="s-consensus">
+        <h2>Achetées par plusieurs grands investisseurs</h2>
+        <p class="note">Actions renforcées ou ouvertes par au moins deux des investisseurs suivis sur leur dernier trimestre déclaré.</p>
+        <div class="scroll">
+          <table data-source="sup_consensus" data-row-key="ticker">
+            <thead><tr><th data-field="ticker">Action</th><th data-field="acheteurs" class="r">Acheteurs</th><th data-field="noms">Qui</th></tr></thead>
+            <tbody data-draw="s-cons"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card" id="s-detail">
+        <h2>Mouvements par investisseur</h2>
+        <p class="note">Variation du nombre d'actions détenues entre deux trimestres (formulaire 13F). Les prochains 13F (3e trimestre) sont attendus d'ici le 16 novembre.</p>
+        <div class="controls">
+          <select class="dash-select lx-sinv" data-draw="s-inv" aria-label="Investisseur" data-source="superinvestors_13f"></select>
+        </div>
+        <div class="scroll">
+          <table data-source="superinvestors_13f" data-row-key="id">
+            <thead><tr><th data-field="ticker">Action</th><th data-field="operation">Opération</th><th data-field="variation_actions" class="r">Actions</th><th data-field="variation_pct" class="r">Var.</th><th data-field="trimestre" class="r hide-sm">Trimestre</th></tr></thead>
+            <tbody data-draw="s-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ark" data-page="ark" hidden>
+    <div class="tiles">
+      <div class="tile"><div class="lbl">Dernière séance publiée</div><div class="num" data-draw="a-date" data-source="ark_totals" data-field="date" data-row="0">—</div></div>
+      <div class="tile"><div class="lbl">Achats ce jour-là</div><div class="num buy" data-draw="a-buy" data-source="ark_totals" data-field="achats_usd" data-row="0">—</div></div>
+      <div class="tile"><div class="lbl">Ventes ce jour-là</div><div class="num sell" data-draw="a-sell" data-source="ark_totals" data-field="ventes_usd" data-row="0">—</div></div>
+      <div class="tile"><div class="lbl">Opérations ce jour-là</div><div class="num" data-draw="a-n" data-source="ark_totals" data-field="operations" data-row="0">—</div></div>
+    </div>
+    <div class="grid">
+      <div class="card" id="a-net">
+        <h2>Achats nets par action, sur les dernières séances</h2>
+        <p class="note">Achats moins ventes, tous fonds ARK réunis. À droite ce qu'ARK accumule, à gauche ce qu'elle allège (10 plus gros de chaque côté).</p>
+        <div class="legend"><span><span class="sw" data-sw="0"></span>Achat net</span><span><span class="sw" data-sw="1"></span>Vente nette</span></div>
+        <div class="chart tall" data-draw="a-chart" data-source="ark_net"></div>
+      </div>
+      <div class="card" id="a-trades">
+        <h2>Opérations quotidiennes d'ARK</h2>
+        <p class="note">ARK publie chaque soir les achats et ventes de ses ETF (ARKK, ARKW, ARKG, ARKQ, ARKF, ARKX). Montant estimé au cours de clôture.</p>
+        <div class="controls">
+          <input class="search lx-aq" type="search" placeholder="Rechercher une action" aria-label="Rechercher une action">
+        </div>
+        <div class="scroll">
+          <table data-source="ark_trades" data-row-key="id">
+            <thead><tr><th data-field="date">Date</th><th data-field="fonds" class="hide-sm">Fonds</th><th data-field="ticker">Action</th><th data-field="operation">Opération</th><th data-field="montant_usd" class="r">Montant</th><th data-field="pct_position" class="r hide-sm">% ligne</th></tr></thead>
+            <tbody data-draw="a-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="inities" data-page="inities" hidden>
+    <div class="tiles">
+      <div class="tile"><div class="lbl">Plus gros achat d'initié récent</div><div class="num buy" data-draw="i-maxbuy" data-source="insider_totals" data-field="max_achat_usd" data-row="0">—</div></div>
+      <div class="tile"><div class="lbl">Sur l'action</div><div class="num" data-draw="i-maxbuyt" data-source="insider_totals" data-field="max_achat_ticker" data-row="0">—</div></div>
+      <div class="tile"><div class="lbl">Plus grosse vente d'initié récente</div><div class="num sell" data-draw="i-maxsell" data-source="insider_totals" data-field="max_vente_usd" data-row="0">—</div></div>
+      <div class="tile"><div class="lbl">Sur l'action</div><div class="num" data-draw="i-maxsellt" data-source="insider_totals" data-field="max_vente_ticker" data-row="0">—</div></div>
+    </div>
+    <div class="card" id="i-gros" style="margin-bottom: var(--cds-gap-md)">
+      <h2>Gros mouvements d'initiés (plus d'un million de dollars)</h2>
+      <p class="note">Dirigeants, administrateurs et actionnaires de plus de 10 % doivent déclarer chaque opération à la SEC sous deux jours ouvrés (formulaire 4) : c'est la donnée légale la plus fraîche.</p>
+      <div class="scroll">
+        <table data-source="insider_trades" data-row-key="id">
+          <thead><tr><th data-field="depose_le">Publié</th><th data-field="ticker">Action</th><th data-field="initie" class="hide-sm">Initié</th><th data-field="operation">Opération</th><th data-field="quantite" class="r hide-sm">Actions</th><th data-field="prix" class="r hide-sm">Prix</th><th data-field="montant_usd" class="r">Montant</th></tr></thead>
+          <tbody data-draw="i-rows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" id="i-tesla">
+      <h2>Tesla : Elon Musk et les autres initiés</h2>
+      <p class="note">Musk ne déclare que ses opérations sur Tesla (SpaceX et xAI ne sont pas cotées). Son dernier mouvement est publié le <b data-draw="i-musk" data-source="musk_last" data-field="depose_le" data-row="0">—</b>.</p>
+      <div class="scroll">
+        <table data-source="tesla_insiders" data-row-key="id">
+          <thead><tr><th data-field="depose_le">Publié</th><th data-field="initie">Initié</th><th data-field="operation">Opération</th><th data-field="quantite" class="r hide-sm">Actions</th><th data-field="prix" class="r hide-sm">Prix</th><th data-field="montant_usd" class="r">Montant</th></tr></thead>
+          <tbody data-draw="i-tsla"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+

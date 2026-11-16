@@ -1,0 +1,8 @@
+node_modules
+.next
+.env
+var/
+*.log
+*.zip
+apercu-*.png
+*.tsbuildinfo

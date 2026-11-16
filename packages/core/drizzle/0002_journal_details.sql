@@ -1,0 +1,1 @@
+ALTER TABLE `collect_log` ADD `details` text;

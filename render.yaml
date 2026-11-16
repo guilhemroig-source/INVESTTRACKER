@@ -1,0 +1,30 @@
+# Render « Blueprint » : New + > Blueprint > choisir ce dépôt. Le disque persistant demande l'offre Starter (payante).
+services:
+  - type: web
+    name: tracker-investisseurs
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: SEC_USER_AGENT
+        sync: false
+      - key: APP_USER
+        sync: false
+      - key: APP_PASSWORD
+        sync: false
+      - key: TIINGO_API_KEY
+        sync: false
+      - key: SMS_PROVIDER
+        value: console
+      - key: SMS_API_KEY
+        sync: false
+      - key: SMS_FROM
+        sync: false
+      - key: SMS_TO
+        sync: false
+      - key: APP_URL
+        sync: false
