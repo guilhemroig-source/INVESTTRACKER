@@ -287,10 +287,12 @@ function traiterLigne(db: Db, l: LigneImport, fx: Fx): Resultat {
   const quantite = l.valeur / prixJour, pru = cout / quantite;
   let date = l.date ?? null, dEst = "";
   if (!date) {
-    date = estimerDateAchat(eur(db.all<{ date: string; close: number }>(sql`SELECT date, COALESCE(close_brut, close) close FROM prices WHERE ticker = ${ticker} ORDER BY date`)), pru, releve);
-    dEst = date ? " Date d'achat estimée (dernier jour où le cours valait le prix de revient)." : "";
+    const hist = eur(db.all<{ date: string; close: number }>(sql`SELECT date, COALESCE(close_brut, close) close FROM prices WHERE ticker = ${ticker} ORDER BY date`));
+    date = estimerDateAchat(hist, pru, releve);
+    // Historique pas encore téléchargé (cours du jour seulement) : estimation reprise à son arrivée
+    dEst = date ? " Date d'achat estimée (dernier jour où le cours valait le prix de revient)." : hist.length < 60 ? ` ${A_ESTIMER}` : "";
   }
-  if (!date) { date = releve; dEst = " Date d'achat inconnue : à corriger."; }
+  if (!date) { date = releve; dEst ||= " Date d'achat inconnue : à corriger."; }
   addTx(db, { date, type: "achat", ticker, quantite: Math.round(quantite * 1e6) / 1e6, prix: pru, frais: 0, compte: l.compte, devise: "EUR", note: note(`Quantité déduite du cours du ${q!.date}.`, dEst) });
   return { ticker, statut: "importee", detail: `${quantite.toFixed(4)} à ${pru.toFixed(2)} €` };
 }
@@ -311,10 +313,29 @@ export function importLignes(db: Db, lignes: LigneImport[], today: string): Resu
   return out;
 }
 
+const A_ESTIMER = "[date d'achat à estimer dès l'arrivée de l'historique des cours]";
+
+/** Estime la date d'achat des lignes importées avant l'arrivée de l'historique (au moins 60 séances). */
+export function reestimerDates(db: Db): Resultat[] {
+  const fx = fxTable(db);
+  const out: Resultat[] = [];
+  for (const t of listTx(db).filter((x) => x.note?.includes(A_ESTIMER))) {
+    const hist = db.all<{ date: string; close: number }>(sql`SELECT date, COALESCE(close_brut, close) close FROM prices WHERE ticker = ${t.ticker} ORDER BY date`)
+      .flatMap((b) => { const c = fx.convert(b.close, "USD", t.devise, b.date); return c == null ? [] : [{ date: b.date, close: c }]; });
+    if (hist.length < 60) continue;
+    const d = estimerDateAchat(hist, t.prix, t.date);
+    const note = t.note!.replace(A_ESTIMER, d ? "Date d'achat estimée (dernier jour où le cours valait le prix de revient)." : "Date d'achat inconnue : à corriger.");
+    db.update(s.portfolioTx).set({ date: d ?? t.date, note }).where(eq(s.portfolioTx.id, t.id)).run();
+    out.push({ ticker: t.ticker, statut: "importee", detail: d ? `date d'achat estimée au ${d}` : "date d'achat inconnue" });
+  }
+  return out;
+}
+
 /** Reprend les lignes en attente (appelé après la collecte des cours et à l'ouverture du portefeuille). */
 export function processImports(db: Db): Resultat[] {
+  const dates = reestimerDates(db);
   const attente = importsEnAttente(db);
-  if (!attente.length) return [];
+  if (!attente.length) return dates;
   const fx = fxTable(db);
   const reste: LigneImport[] = [], out: Resultat[] = [];
   for (const l of attente) {
@@ -323,7 +344,7 @@ export function processImports(db: Db): Resultat[] {
     out.push(r);
   }
   setEnAttente(db, reste);
-  return out;
+  return [...dates, ...out];
 }
 
 // ------------------------------------------------------------------ Journal de décisions

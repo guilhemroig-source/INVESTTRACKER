@@ -215,7 +215,7 @@ Modifier le schéma : éditer `packages/core/src/db/schema.ts`, puis `pnpm db:ge
 | `societes` | Profil de chaque société suivie (secteur, pays, capitalisation, site : Finnhub, tous les 30 jours), ce que fait l'entreprise en français (introduction de l'article Wikipédia trouvé par le symbole dans Wikidata, vérifiée par le nom ; à défaut l'article anglais ou la définition courte de Wikidata), dernières nouvelles (Finnhub, 7 jours : mes actions à chaque passage, les autres toutes les 12 heures) | finnhub.io, wikidata.org, wikipedia.org |
 | `calendrier` | Dates de résultats J−14 à J+90 des actions suivies (estimations de BPA et de chiffre d'affaires, puis chiffres publiés) ; nouvelles des sociétés de mon portefeuille et de ma liste | finnhub.io |
 | `change` | Taux de change euro / dollar de référence de la BCE (depuis 2015, puis chaque jour) | data-api.ecb.europa.eu |
-| `prix` | Cours journaliers ajustés pour l'analyse technique et le portefeuille, plus SPY, QQQ et VT (ETF monde) comme références ; cryptos du portefeuille | api.tiingo.com |
+| `prix` | Cours journaliers ajustés pour l'analyse technique et le portefeuille, plus SPY, QQQ et VT (ETF monde) comme références ; cryptos du portefeuille. Cours du jour des lignes de mon portefeuille par Finnhub (`/quote`), indépendamment du quota Tiingo | api.tiingo.com, finnhub.io |
 | `fondamentaux` | Comptes de chaque société (API XBRL « companyfacts » de la SEC) : chiffre d'affaires, bénéfice et BPA sur 12 mois glissants, flux de trésorerie, dette, trésorerie, nombre d'actions ; rafraîchis chaque semaine | data.sec.gov |
 | `news` | Annonces 8-K de chaque société (EDGAR) et articles de presse (GDELT) autour des opérations | efts.sec.gov, www.sec.gov, api.gdeltproject.org |
 | `all` | `tickers`, `ark`, `edgar-musk`, `openinsider` (→ `edgar-insiders` si échec), `13f`, `trump`, `congres`, `prix`, `fondamentaux`, `news` | |
@@ -374,7 +374,7 @@ Style « terminal de trading » repris du prototype (`ui-reference/`) : fond som
 ## 10. Tests
 
 ```bash
-pnpm test        # 128 tests (vitest) dans les 3 paquets
+pnpm test        # 129 tests (vitest) dans les 3 paquets
 pnpm typecheck   # TypeScript strict
 ```
 
@@ -469,6 +469,10 @@ docker run -d --name tracker -p 3000:3000 -v tracker-data:/data --env-file .env 
 ```
 
 Le contrôle de santé est `GET /api/health` (sans mot de passe). Les deux processus (web et planificateur) tournent dans le même conteneur : si l'un s'arrête, le conteneur s'arrête et l'hébergeur le relance.
+
+### Collecter sans attendre
+
+Page `/admin` : boutons « Collecter maintenant » par source (route `POST /api/admin/collecte?source=13f`, protégée comme le reste du site par `APP_USER` / `APP_PASSWORD`). Le résultat apparaît dans le journal de collecte.
 
 ### Page instantanée
 

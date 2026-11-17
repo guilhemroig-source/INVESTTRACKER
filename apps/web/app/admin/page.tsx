@@ -1,5 +1,6 @@
 import { getAlerts, getCollectLog, getCounts, getDb, getSourceStatus } from "@tracker/core";
 import { fmtDateTime } from "@/lib/format";
+import { CollecteButtons } from "@/components/CollecteButtons";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,11 @@ export default function Admin() {
       <p className="kicker">Admin · journal de collecte</p>
       <h1 style={{ fontSize: "2rem" }}>Administration</h1>
       <p className="lead"><a href="/" style={{ color: "var(--tk-accent)" }}>← Retour au tableau de bord</a></p>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h2>Collecter maintenant</h2>
+        <p className="note">Sans attendre les collectes de 7h30 et 23h30 (cours : chaque heure). Le résultat s&apos;affiche dans le journal ci-dessous.</p>
+        <CollecteButtons />
+      </div>
       <div className="grid">
         <div className="card">
           <h2>État par source</h2>

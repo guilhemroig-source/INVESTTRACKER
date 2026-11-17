@@ -163,4 +163,20 @@ describe("journal et portefeuille en base", () => {
     expect(m.prixRevientUsd).toBeCloseTo(110, 9); // seuil en dollars au dernier taux connu
     expect(mesEntrees(db, "AMD", "2026-11-17")).toBeNull();
   });
+  it("cours du jour seulement : ligne importée tout de suite, date d'achat estimée à l'arrivée de l'historique", () => {
+    insertIgnore(db, s.change, [{ date: "2026-01-01", eurusd: 1.25 }]);
+    insertIgnore(db, s.prices, [{ ticker: "TTWO", date: "2026-11-16", open: 250, high: 250, low: 250, close: 250, volume: 0, closeBrut: 250 }]);
+    expect(importLignes(db, [{ ticker: "TTWO", compte: "CTO", valeur: 2000, gain: -100 }], "2026-11-17")[0].statut).toBe("importee");
+    let tx = getPortfolio(db, "2026-11-17").transactions[0];
+    expect(tx.date).toBe("2026-11-17");
+    expect(tx.note).toMatch(/à estimer/);
+    // Historique arrivé : 210 € = 262,5 $ le 2 juillet
+    const jours = Array.from({ length: 80 }, (_, i) => new Date(Date.UTC(2026, 6, 1) + i * 86400_000).toISOString().slice(0, 10));
+    insertIgnore(db, s.prices, jours.map((d) => ({ ticker: "TTWO", date: d, open: 1, high: 1, low: 1, close: d === "2026-07-02" ? 262.5 : 300, volume: 1, closeBrut: d === "2026-07-02" ? 262.5 : 300 })));
+    expect(processImports(db)[0]).toMatchObject({ ticker: "TTWO", detail: "date d'achat estimée au 2026-07-02" });
+    tx = getPortfolio(db, "2026-11-17").transactions[0];
+    expect(tx.date).toBe("2026-07-02");
+    expect(tx.note).toMatch(/Date d'achat estimée/);
+    expect(processImports(db)).toEqual([]);
+  });
 });

@@ -17,9 +17,49 @@ const addDays = (iso: string, n: number) => isoDate(new Date(Date.parse(iso + "T
 
 interface TiingoBar { date: string; adjOpen: number; adjHigh: number; adjLow: number; adjClose: number; adjVolume: number; close: number }
 
+/**
+ * Cours du jour des lignes de « Mon portefeuille » (et des imports en attente) via Finnhub /quote :
+ * indépendant du quota Tiingo, rafraîchi à chaque passage. Tiingo remplace ensuite la séance par ses cours ajustés.
+ */
+export async function coursDuJour(db: Db): Promise<string[]> {
+  const fh = process.env.FINNHUB_API_KEY?.trim();
+  if (!fh) return [];
+  const actifs = db.select().from(s.actifsPerso).all();
+  const perso = new Map(actifs.map((a) => [a.ticker, a]));
+  const pf = db.all<{ t: string }>(sql`SELECT DISTINCT ticker t FROM portfolio_tx`).map((r) => r.t);
+  const att = importsEnAttente(db).map((l) => l.ticker.trim().toUpperCase());
+  const out: string[] = [];
+  for (const t of [...new Set([...pf, ...att])]) {
+    const a = perso.get(t);
+    if (a && a.cotation !== "crypto") continue; // cours saisi : rien à télécharger
+    // Crypto : paire Tiingo « btcusd » -> symbole Finnhub « BINANCE:BTCUSDT »
+    const sym = a ? `BINANCE:${a.indice!.toUpperCase().replace(/USD$/, "")}USDT` : t.replace(/\./g, "-");
+    try {
+      const q = await getJson<{ c: number; h: number; l: number; o: number; t: number }>(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}`,
+        { userAgent: TOOL_UA, cacheTtl: 0, headers: { "X-Finnhub-Token": fh } });
+      if (!(q.c > 0) || !q.t) continue;
+      const date = isoDate(new Date(q.t * 1000));
+      // Ne remplace pas une séance déjà fournie par Tiingo (cours ajustés)
+      const deja = db.get<{ v: number }>(sql`SELECT volume v FROM prices WHERE ticker = ${t} AND date = ${date}`);
+      if (deja && deja.v > 0) continue;
+      const row = { ticker: t, date, open: q.o || q.c, high: q.h || q.c, low: q.l || q.c, close: q.c, volume: 0, closeBrut: q.c };
+      db.insert(s.prices).values(row).onConflictDoUpdate({ target: [s.prices.ticker, s.prices.date], set: row }).run();
+      out.push(`${t} ${q.c}`);
+    } catch (e) {
+      out.push(`${t} : ${(e as Error).message}`);
+    }
+  }
+  return out;
+}
+
 export const collectPrix: Collector = async (db) => {
+  const jour = await coursDuJour(db);
   const key = process.env.TIINGO_API_KEY?.trim();
-  if (!key) throw new Error("TIINGO_API_KEY manquant dans .env (clé gratuite sur tiingo.com)");
+  if (!key) {
+    for (const r of processImports(db)) jour.push(`Import ${r.ticker} : ${r.statut} (${r.detail})`);
+    if (jour.length) return { lues: jour.length, nouvelles: jour.length, details: ["Cours du jour (Finnhub) : " + jour.join(", "), "TIINGO_API_KEY manquant : pas d'historique"] };
+    throw new Error("TIINGO_API_KEY manquant dans .env (clé gratuite sur tiingo.com)");
+  }
   const budget = Number(process.env.TIINGO_MAX_PER_RUN || 45);
   const today = isoDate(new Date());
 
@@ -118,6 +158,7 @@ export const collectPrix: Collector = async (db) => {
       details.push(`${job.ticker} : ${(e as Error).message}`);
     }
   }
+  if (jour.length) details.push(`Cours du jour de mon portefeuille (Finnhub) : ${jour.join(", ")}`);
   const reste = Math.max(0, todo.length - faits);
   for (const r of processImports(db)) details.push(`Import ${r.ticker} : ${r.statut} (${r.detail})`);
   const an = refreshAnalyses(db);
