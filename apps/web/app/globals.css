@@ -389,3 +389,12 @@ html, body { background: #05080d; margin: 0; }
 .tk .moi-pt, .tk .moi-pru { color: #ffb547; font-weight: 700; margin-right: 3px; }
 .tk .ap-spark .ap-pru { stroke: #ffb547; stroke-width: 1; opacity: .9; }
 .tk .ap-legende { color: #ffb547; }
+
+/* ---- Zoom des graphiques ---- */
+.tk .zoom-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.tk .zoom-bar button { font-family: var(--tk-mono); font-size: .8rem; min-width: 30px; height: 28px; padding: 0 8px; border-radius: 5px; border: 1px solid var(--color-border-line); background: var(--color-panel); color: var(--color-fg); cursor: pointer; }
+.tk .zoom-bar button:hover:not(:disabled) { border-color: var(--tk-amber); color: var(--tk-amber); }
+.tk .zoom-bar button:disabled { opacity: .35; cursor: default; }
+.tk .zoom-bar .zoom-reset { font-size: .66rem; letter-spacing: .04em; color: var(--tk-amber); border-color: rgba(255,181,71,.4); }
+.tk .zoom-info, .tk .zoom-lbl { font-family: var(--tk-mono); font-size: .66rem; color: var(--color-fg-muted); margin-left: 4px; }
+.tk .zoom-ind { margin: var(--cds-gap-md) 0 var(--cds-gap-sm); }

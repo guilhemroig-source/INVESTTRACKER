@@ -289,7 +289,7 @@ Trois types de règles : une **action** (achats, ventes ou les deux), un **inves
 
 ### Page action (`#action-NVDA`, clic sur n'importe quel symbole)
 
-En tête : **ce que fait l'entreprise** (introduction Wikipédia en français, secteur, pays, capitalisation, ancienneté en bourse, site) et ses **dernières nouvelles** (Finnhub, résumé dépliable). Pour une action de « Mon portefeuille », le graphique montre **mes achats et ventes** (prix payé converti en dollars au taux BCE du jour) et **mon prix de revient** en pointillés orange : le cours en dollars au-dessus duquel la ligne est gagnante en euros au taux actuel ; l'écart s'affiche au survol. La même ligne figure sur les mini-courbes de « Mes actifs » dans l'aperçu. Les fiches dépliables (classement, analyses) commencent par une phrase sur l'activité de la société.
+En tête : **ce que fait l'entreprise** (introduction Wikipédia en français, secteur, pays, capitalisation, ancienneté en bourse, site) et ses **dernières nouvelles** (Finnhub, résumé dépliable). **Zoom** : glisser sur le graphique pour sélectionner une période (pincer à deux doigts sur téléphone), boutons + / − / ← / →, double-clic ou « Annuler le zoom » pour revenir ; les 8 graphiques d'indicateurs des analyses ont une barre de zoom commune, centrée sur le jour de l'opération. Pour une action de « Mon portefeuille », le graphique montre **mes achats et ventes** (prix payé converti en dollars au taux BCE du jour) et **mon prix de revient** en pointillés orange : le cours en dollars au-dessus duquel la ligne est gagnante en euros au taux actuel ; l'écart s'affiche au survol. La même ligne figure sur les mini-courbes de « Mes actifs » dans l'aperçu. Les fiches dépliables (classement, analyses) commencent par une phrase sur l'activité de la société.
 
 
 Cours ajusté (3 mois, 6 mois, 1 an, tout) avec les achats ▲ et ventes ▼ des investisseurs (initiale de la source, filtres par source, infobulle de la journée) et les annonces officielles ◆ ; toutes les opérations sur l'action (dépliables) ; annonces 8-K et presse ; fiche complète ; bouton « Suivre ».
@@ -374,7 +374,7 @@ Style « terminal de trading » repris du prototype (`ui-reference/`) : fond som
 ## 10. Tests
 
 ```bash
-pnpm test        # 129 tests (vitest) dans les 3 paquets
+pnpm test        # 133 tests (vitest) dans les 3 paquets
 pnpm typecheck   # TypeScript strict
 ```
 

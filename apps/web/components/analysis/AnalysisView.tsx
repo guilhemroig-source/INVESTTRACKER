@@ -3,7 +3,8 @@ import { NewsView } from "./NewsView";
 import { FicheView } from "./FicheView";
 import { AnalysisTabs } from "./AnalysisTabs";
 import { fmtDate, fmtPct, fmtPrice } from "@/lib/format";
-import { IndicatorChart, LEGENDS } from "./IndicatorCharts";
+import { LEGENDS } from "./IndicatorCharts";
+import { ZoomIndicateurs, ZoomedIndicator } from "./ZoomIndicateurs";
 
 /** Contenu de l'analyse d'une opération : verdict, motif, suite, 8 modèles. Utilisé en pleine page et dans les lignes dépliées. */
 
@@ -23,7 +24,7 @@ function IndicatorCard({ r, idx, sens, analysis }: { r: Reading; idx: number; se
         <span className={`accord ${a.cls}`}>{a.label(sens)}</span>
       </div>
       <div className="legend">{LEGENDS[r.id].map((l) => <span key={l.label}><span className="sw" style={{ background: l.color }} />{l.label}</span>)}</div>
-      <IndicatorChart id={r.id} c={analysis.chart} />
+      <ZoomedIndicator id={r.id} c={analysis.chart} />
       <p className="ind-val">{r.valeur}</p>
       <p className="ind-txt">{r.lecture}</p>
     </div>
@@ -79,9 +80,11 @@ function TechView({ analysis: a, sens, ticker }: { analysis: Analysis | null; se
           })}
         </div>
       )}
-      <div className="ind-grid">
-        {a.readings.map((r, k) => <IndicatorCard key={r.id} r={r} idx={k} sens={sens} analysis={a} />)}
-      </div>
+      <ZoomIndicateurs dates={a.chart.dates} refIndex={a.chart.refIndex}>
+        <div className="ind-grid">
+          {a.readings.map((r, k) => <IndicatorCard key={r.id} r={r} idx={k} sens={sens} analysis={a} />)}
+        </div>
+      </ZoomIndicateurs>
     </>
   );
 }

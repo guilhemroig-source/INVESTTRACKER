@@ -2,6 +2,7 @@
 import { scaleLinear, scaleTime } from "d3";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fmtDate, fmtPrice, fmtRange, fmtUsd } from "@/lib/format";
+import { type Win, panWin, selectWin, zoomWin } from "@/lib/zoom";
 
 export interface ChartOp { date: string; sens: "achat" | "vente"; source: string; qui: string; operation: string; montantUsd: number | null; fourchette: string | null }
 export interface ChartNews { date: string; titre: string; resume?: string | null }
@@ -29,24 +30,37 @@ export function PriceChart({ bars, ops, news, moi }: { bars: { date: string; clo
   const [range, setRange] = useState<(typeof RANGES)[number]["id"]>("1a");
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [hover, setHover] = useState<number | null>(null);
+  // Zoom : fenêtre [début, fin] en indices de séances ; null = période choisie par les boutons (3 mois… Tout)
+  const [win, setWin] = useState<Win | null>(null);
+  const [drag, setDrag] = useState<{ a: number; b: number } | null>(null);
+  const pinch = useRef<{ d0: number; w0: Win; c: number } | null>(null);
   const sources = [...new Set(ops.map((o) => o.source))];
+  const n = bars.length;
 
-  const view = useMemo(() => {
-    if (!bars.length) return null;
-    const last = bars[bars.length - 1].date;
+  const rangeWin = useMemo((): Win => {
+    if (!n) return [0, 0];
+    const last = bars[n - 1].date;
     const days = RANGES.find((r) => r.id === range)!.d;
     const from = new Date(Date.parse(last) - days * 86400_000).toISOString().slice(0, 10);
-    const b = bars.filter((x) => x.date >= from);
-    return { b, from, last };
-  }, [bars, range]);
-  if (!bars.length) return <p className="note">Cours pas encore téléchargés pour cette action (collecteur « prix », par lots horaires).</p>;
-  const { b, from, last } = view!;
+    const i = bars.findIndex((x) => x.date >= from);
+    return [Math.max(0, i), n - 1];
+  }, [bars, n, range]);
+  if (!n) return <p className="note">Cours pas encore téléchargés pour cette action (collecteur « prix », par lots horaires).</p>;
+  const w = win ?? rangeWin;
+  const b = bars.slice(w[0], w[1] + 1);
+  const from = b[0].date, last = b[b.length - 1].date;
   const x = scaleTime().domain([new Date(b[0].date), new Date(last)]).range([M.left, Math.max(M.left + 1, width - M.right)]);
   const mesTx = (moi?.transactions ?? []).filter((t) => t.prixUsd != null && t.date >= from && t.date <= last);
   const pruUsd = moi?.prixRevientUsd ?? null;
   // L'échelle englobe mes prix d'achat et mon prix de revient pour qu'ils restent visibles
   const vals = [...b.map((p) => p.close), ...mesTx.map((t) => t.prixUsd!), ...(pruUsd ? [pruUsd] : [])];
   const lo = Math.min(...vals), hi = Math.max(...vals);
+  /** Indice (dans la fenêtre affichée) de la séance sous une abscisse écran. */
+  const idx = (el: Element, clientX: number) => {
+    const d = x.invert(clientX - el.getBoundingClientRect().left).toISOString().slice(0, 10);
+    let k = 0; for (let i = 0; i < b.length; i++) { if (b[i].date <= d) k = i; else break; }
+    return k;
+  };
   const y = scaleLinear().domain([lo - (hi - lo) * 0.12, hi + (hi - lo) * 0.12]).range([H - M.bottom, M.top]).nice();
   const priceAt = (d: string) => { let r = b[0]; for (const p of b) { if (p.date > d) break; r = p; } return r; };
   const vis = ops.filter((o) => !hidden.has(o.source) && o.date >= from && o.date <= last);
@@ -65,7 +79,15 @@ export function PriceChart({ bars, ops, news, moi }: { bars: { date: string; clo
     <div>
       <div className="chart-bar">
         <div className="subtabs" role="tablist" aria-label="Période">
-          {RANGES.map((r) => <button key={r.id} type="button" className="subtab" aria-selected={range === r.id} onClick={() => setRange(r.id)}>{r.label}</button>)}
+          {RANGES.map((r) => <button key={r.id} type="button" className="subtab" aria-selected={!win && range === r.id} onClick={() => { setRange(r.id); setWin(null); }}>{r.label}</button>)}
+        </div>
+        <div className="zoom-bar" role="group" aria-label="Zoom">
+          <button type="button" onClick={() => setWin(zoomWin(w, n, 0.5))} title="Rapprocher" aria-label="Rapprocher">+</button>
+          <button type="button" onClick={() => setWin(zoomWin(w, n, 2))} title="Éloigner" aria-label="Éloigner">−</button>
+          <button type="button" onClick={() => setWin(panWin(w, n, -0.4))} disabled={w[0] === 0} title="Plus ancien" aria-label="Plus ancien">←</button>
+          <button type="button" onClick={() => setWin(panWin(w, n, 0.4))} disabled={w[1] === n - 1} title="Plus récent" aria-label="Plus récent">→</button>
+          {win && <button type="button" className="zoom-reset" onClick={() => setWin(null)}>Annuler le zoom</button>}
+          <span className="zoom-info">{fmtDate(from, true)} → {fmtDate(last, true)}</span>
         </div>
         <div className="legend chart-filters">
           {moi && <span><span className="moi-pt">●</span>Mes achats · <span className="moi-pru">┄</span> Mon prix de revient</span>}
@@ -75,13 +97,27 @@ export function PriceChart({ bars, ops, news, moi }: { bars: { date: string; clo
           ))}
         </div>
       </div>
-      <div className="chart" ref={ref} style={{ minHeight: H }} onMouseLeave={() => setHover(null)}>
+      <div className="chart" ref={ref} style={{ minHeight: H }} onMouseLeave={() => { setHover(null); setDrag(null); }}>
         {width > 0 && (
           <svg width={width} height={H} role="img" aria-label="Cours de l'action avec les opérations des investisseurs"
+            style={{ touchAction: "pan-y", cursor: drag ? "ew-resize" : "crosshair", userSelect: "none" }}
+            onMouseDown={(e) => { const k = idx(e.currentTarget, e.clientX); setDrag({ a: w[0] + k, b: w[0] + k }); }}
+            onMouseUp={() => { if (drag && Math.abs(drag.b - drag.a) >= 3) setWin(selectWin(drag.a, drag.b, n)); setDrag(null); }}
+            onDoubleClick={() => setWin(null)}
+            onTouchStart={(e) => {
+              if (e.touches.length !== 2) return;
+              const [t1, t2] = [e.touches[0], e.touches[1]];
+              pinch.current = { d0: Math.abs(t1.clientX - t2.clientX) || 1, w0: w, c: w[0] + idx(e.currentTarget, (t1.clientX + t2.clientX) / 2) };
+            }}
+            onTouchMove={(e) => {
+              if (e.touches.length !== 2 || !pinch.current) return;
+              const d = Math.abs(e.touches[0].clientX - e.touches[1].clientX) || 1;
+              setWin(zoomWin(pinch.current.w0, n, pinch.current.d0 / d, pinch.current.c));
+            }}
+            onTouchEnd={() => { pinch.current = null; }}
             onMouseMove={(e) => {
-              const box = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
-              const d = x.invert(e.clientX - box.left).toISOString().slice(0, 10);
-              let k = 0; for (let i = 0; i < b.length; i++) { if (b[i].date <= d) k = i; else break; }
+              const k = idx(e.currentTarget, e.clientX);
+              if (drag) setDrag({ ...drag, b: w[0] + k });
               setHover(k);
             }}>
             {y.ticks(5).map((t) => (
@@ -120,6 +156,10 @@ export function PriceChart({ bars, ops, news, moi }: { bars: { date: string; clo
                 </g>
               );
             })}
+            {drag && Math.abs(drag.b - drag.a) >= 1 && (() => {
+              const xa = x(new Date(bars[Math.min(drag.a, drag.b)].date)), xb = x(new Date(bars[Math.max(drag.a, drag.b)].date));
+              return <rect x={xa} y={M.top} width={Math.max(1, xb - xa)} height={H - M.top - M.bottom} fill="#ffb547" opacity={0.12} stroke="#ffb547" strokeOpacity={0.5} />;
+            })()}
             {hb && <><line x1={x(new Date(hb.date))} x2={x(new Date(hb.date))} y1={M.top} y2={H - M.bottom} stroke="var(--tk-amber)" strokeDasharray="3 3" />
               <circle cx={x(new Date(hb.date))} cy={y(hb.close)} r={3.5} fill="var(--tk-amber)" /></>}
           </svg>
