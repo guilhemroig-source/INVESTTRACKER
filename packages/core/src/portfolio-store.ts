@@ -279,8 +279,10 @@ function traiterLigne(db: Db, l: LigneImport, fx: Fx): Resultat {
     return { ticker, statut: "importee", detail: `1 lot, prix de revient ${cout.toFixed(2)} €` };
   }
 
-  // Cotée (action américaine ou crypto) : il faut le cours du jour du relevé, en euros
-  const q = quoteOf(db, ticker, fx);
+  // Cotée (action américaine ou crypto) : la valeur affichée par le courtier au moment du relevé repose sur la dernière
+  // clôture connue AVANT le jour du relevé (un relevé du matin à Paris précède l'ouverture de New York).
+  const b = db.get<{ date: string; c: number }>(sql`SELECT date, COALESCE(close_brut, close) c FROM prices WHERE ticker = ${ticker} AND date < ${releve} ORDER BY date DESC LIMIT 1`);
+  const q = b ? { cours: b.c, date: b.date, devise: "USD" } : null;
   const tropVieux = !q || Date.parse(releve) - Date.parse(q.date) > 5 * 86400_000;
   const prixJour = q && !tropVieux ? fx.convert(q.cours, q.devise, "EUR", q.date) : null;
   if (prixJour == null) return { ticker, statut: "en attente", detail: tropVieux ? "cours pas encore téléchargé" : "taux de change BCE manquant" };

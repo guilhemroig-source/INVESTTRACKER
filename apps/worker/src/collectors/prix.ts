@@ -35,7 +35,7 @@ export async function coursDuJour(db: Db): Promise<string[]> {
     // Crypto : paire Tiingo « btcusd » -> symbole Finnhub « BINANCE:BTCUSDT »
     const sym = a ? `BINANCE:${a.indice!.toUpperCase().replace(/USD$/, "")}USDT` : t.replace(/\./g, "-");
     try {
-      const q = await getJson<{ c: number; h: number; l: number; o: number; t: number }>(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}`,
+      const q = await getJson<{ c: number; h: number; l: number; o: number; t: number; pc: number }>(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}`,
         { userAgent: TOOL_UA, cacheTtl: 0, headers: { "X-Finnhub-Token": fh } });
       if (!(q.c > 0) || !q.t) continue;
       const date = isoDate(new Date(q.t * 1000));
@@ -44,6 +44,14 @@ export async function coursDuJour(db: Db): Promise<string[]> {
       if (deja && deja.v > 0) continue;
       const row = { ticker: t, date, open: q.o || q.c, high: q.h || q.c, low: q.l || q.c, close: q.c, volume: 0, closeBrut: q.c };
       db.insert(s.prices).values(row).onConflictDoUpdate({ target: [s.prices.ticker, s.prices.date], set: row }).run();
+      // Clôture de la veille (séance précédente : on saute le week-end pour une action), si Tiingo ne l'a pas encore
+      if (q.pc > 0) {
+        const d = new Date(`${date}T12:00:00Z`);
+        do d.setUTCDate(d.getUTCDate() - 1); while (!a && (d.getUTCDay() === 0 || d.getUTCDay() === 6));
+        const veille = isoDate(d);
+        if (!db.get(sql`SELECT 1 FROM prices WHERE ticker = ${t} AND date = ${veille}`))
+          db.insert(s.prices).values({ ticker: t, date: veille, open: q.pc, high: q.pc, low: q.pc, close: q.pc, volume: 0, closeBrut: q.pc }).run();
+      }
       out.push(`${t} ${q.c}`);
     } catch (e) {
       out.push(`${t} : ${(e as Error).message}`);
