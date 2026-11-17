@@ -5,6 +5,9 @@ import { fmtDate, fmtPrice, fmtRange, fmtUsd } from "@/lib/format";
 
 export interface ChartOp { date: string; sens: "achat" | "vente"; source: string; qui: string; operation: string; montantUsd: number | null; fourchette: string | null }
 export interface ChartNews { date: string; titre: string; resume?: string | null }
+/** Mes achats et ventes (prix en dollars au taux du jour) et mon prix de revient en dollars */
+export interface ChartMoi { transactions: { date: string; type: "achat" | "vente"; quantite: number; prix: number; devise: string; prixUsd: number | null }[]; prixRevientUsd: number | null; prixRevient: number | null; devise: string }
+const SYM: Record<string, string> = { EUR: "€", USD: "$" };
 
 const SRC: Record<string, { lettre: string; label: string }> = {
   "13F": { lettre: "F", label: "Fonds (13F)" }, ARK: { lettre: "A", label: "ARK" }, FORM4: { lettre: "I", label: "Initiés" },
@@ -21,7 +24,7 @@ function useWidth<T extends HTMLElement>() {
 }
 
 /** Cours de l'action, avec les achats (▲) et ventes (▼) des investisseurs suivis et les annonces officielles (◆). */
-export function PriceChart({ bars, ops, news }: { bars: { date: string; close: number }[]; ops: ChartOp[]; news: ChartNews[] }) {
+export function PriceChart({ bars, ops, news, moi }: { bars: { date: string; close: number }[]; ops: ChartOp[]; news: ChartNews[]; moi?: ChartMoi | null }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [range, setRange] = useState<(typeof RANGES)[number]["id"]>("1a");
   const [hidden, setHidden] = useState<Set<string>>(new Set());
@@ -39,7 +42,11 @@ export function PriceChart({ bars, ops, news }: { bars: { date: string; close: n
   if (!bars.length) return <p className="note">Cours pas encore téléchargés pour cette action (collecteur « prix », par lots horaires).</p>;
   const { b, from, last } = view!;
   const x = scaleTime().domain([new Date(b[0].date), new Date(last)]).range([M.left, Math.max(M.left + 1, width - M.right)]);
-  const lo = Math.min(...b.map((p) => p.close)), hi = Math.max(...b.map((p) => p.close));
+  const mesTx = (moi?.transactions ?? []).filter((t) => t.prixUsd != null && t.date >= from && t.date <= last);
+  const pruUsd = moi?.prixRevientUsd ?? null;
+  // L'échelle englobe mes prix d'achat et mon prix de revient pour qu'ils restent visibles
+  const vals = [...b.map((p) => p.close), ...mesTx.map((t) => t.prixUsd!), ...(pruUsd ? [pruUsd] : [])];
+  const lo = Math.min(...vals), hi = Math.max(...vals);
   const y = scaleLinear().domain([lo - (hi - lo) * 0.12, hi + (hi - lo) * 0.12]).range([H - M.bottom, M.top]).nice();
   const priceAt = (d: string) => { let r = b[0]; for (const p of b) { if (p.date > d) break; r = p; } return r; };
   const vis = ops.filter((o) => !hidden.has(o.source) && o.date >= from && o.date <= last);
@@ -61,6 +68,7 @@ export function PriceChart({ bars, ops, news }: { bars: { date: string; close: n
           {RANGES.map((r) => <button key={r.id} type="button" className="subtab" aria-selected={range === r.id} onClick={() => setRange(r.id)}>{r.label}</button>)}
         </div>
         <div className="legend chart-filters">
+          {moi && <span><span className="moi-pt">●</span>Mes achats · <span className="moi-pru">┄</span> Mon prix de revient</span>}
           <span><span className="tri up">▲</span>Achat</span><span><span className="tri dn">▼</span>Vente</span><span><span className="dia">◆</span>Annonce officielle</span>
           {sources.map((s) => (
             <label key={s} className="src-toggle"><input type="checkbox" checked={!hidden.has(s)} onChange={() => setHidden((h) => { const n = new Set(h); n.has(s) ? n.delete(s) : n.add(s); return n; })} /> {SRC[s]?.lettre ?? s} = {SRC[s]?.label ?? s}</label>
@@ -96,6 +104,22 @@ export function PriceChart({ bars, ops, news }: { bars: { date: string; close: n
                 </g>
               );
             })}
+            {pruUsd != null && (
+              <g>
+                <line x1={M.left} x2={width - M.right} y1={y(pruUsd)} y2={y(pruUsd)} stroke="#ffb547" strokeWidth={1.4} strokeDasharray="6 4" />
+                <rect x={M.left + 2} y={y(pruUsd) - 17} width={196} height={14} rx={3} fill="#05080d" opacity={0.85} />
+                <text x={M.left + 6} y={y(pruUsd) - 7} fontSize={10} fontWeight={600} fill="#ffb547">Mon prix de revient {fmtPrice(pruUsd)}{moi?.devise === "EUR" && moi.prixRevient ? ` (${moi.prixRevient.toFixed(2).replace(".", ",")} €)` : ""}</text>
+              </g>
+            )}
+            {mesTx.map((t, i) => {
+              const cx = x(new Date(t.date)), cy = y(t.prixUsd!);
+              return (
+                <g key={`moi${i}`}>
+                  <circle cx={cx} cy={cy} r={6.5} fill={t.type === "achat" ? "#ffb547" : "#05080d"} stroke="#ffb547" strokeWidth={2} />
+                  <text x={cx > width - M.right - 24 ? cx - 9 : cx} y={cy - 10} textAnchor={cx > width - M.right - 24 ? "end" : "middle"} fontSize={9} fontWeight={700} fill="#ffb547">{t.type === "achat" ? "Mon achat" : "Ma vente"}</text>
+                </g>
+              );
+            })}
             {hb && <><line x1={x(new Date(hb.date))} x2={x(new Date(hb.date))} y1={M.top} y2={H - M.bottom} stroke="var(--tk-amber)" strokeDasharray="3 3" />
               <circle cx={x(new Date(hb.date))} cy={y(hb.close)} r={3.5} fill="var(--tk-amber)" /></>}
           </svg>
@@ -107,6 +131,10 @@ export function PriceChart({ bars, ops, news }: { bars: { date: string; close: n
               <div key={i} className={o.sens === "achat" ? "buy" : "sell"}>{o.sens === "achat" ? "▲" : "▼"} {o.qui.replace(/\s*\(.*\)$/, "")} · {o.operation}{o.montantUsd ? ` · ${fmtUsd(o.montantUsd)}` : o.fourchette ? ` · ${fmtRange(o.fourchette)}` : ""}</div>
             ))}
             {hOps.length > 6 && <div className="h">+ {hOps.length - 6} autre(s)</div>}
+            {moi?.transactions.filter((t) => Math.abs(Date.parse(t.date) - Date.parse(hb.date)) <= 2 * 86400_000).map((t, i) => (
+              <div key={`m${i}`} style={{ color: "#ffb547" }}>● Mon {t.type} : {t.quantite.toLocaleString("fr-FR", { maximumFractionDigits: 4 })} à {t.prix.toFixed(2).replace(".", ",")} {SYM[t.devise] ?? t.devise}{t.devise !== "USD" && t.prixUsd ? ` (${fmtPrice(t.prixUsd)})` : ""}</div>
+            ))}
+            {pruUsd != null && <div className="h">Écart au prix de revient : <b className={hb.close >= pruUsd ? "buy" : "sell"}>{((hb.close / pruUsd - 1) * 100).toFixed(1).replace(".", ",")} %</b></div>}
             {hNews.slice(0, 2).map((n, i) => <div key={`n${i}`} style={{ color: "#9db1ff" }}>◆ {n.resume ?? n.titre}</div>)}
           </div>
         )}

@@ -15,3 +15,4 @@ export * from "./watch-store";
 export * from "./portfolio-store";
 export * from "./apercu-store";
 export * from "./calendrier-store";
+export * from "./profil-store";

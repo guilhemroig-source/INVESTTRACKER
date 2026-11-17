@@ -372,3 +372,20 @@ html, body { background: #05080d; margin: 0; }
 .tk .ap-ev { min-width: 0; }
 .tk .ap-ev .cal-chiffres { font-size: .7rem; }
 .tk .ap-sub a { color: var(--tk-accent); }
+
+/* ---- Profil de la société ---- */
+.tk .profil-texte { font-size: .9rem; line-height: 1.55; color: var(--color-fg); }
+.tk .profil-texte p { margin: 0 0 var(--cds-gap-sm); }
+.tk .profil-logo { float: right; margin: 0 0 8px 12px; border-radius: 8px; background: #fff; padding: 4px; object-fit: contain; }
+.tk .profil-faits { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: var(--cds-gap-sm) var(--cds-gap-md); margin: var(--cds-gap-md) 0 0; clear: both; }
+.tk .profil-faits dt { font-family: var(--tk-mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--color-fg-muted); }
+.tk .profil-faits dd { margin: 2px 0 0; font-size: .84rem; overflow-wrap: anywhere; }
+.tk .profil-faits a, .tk .profil-texte + .note a { color: var(--tk-accent); }
+.tk .ev-resume { margin-top: 4px; font-size: .76rem; color: var(--color-fg-muted); }
+.tk .ev-resume summary { cursor: pointer; font-family: var(--tk-mono); font-size: .66rem; }
+.tk .ev-resume p { margin: 4px 0 0; line-height: 1.45; }
+.tk .fiche-activite p { margin: 6px 0 0; font-size: .88rem; line-height: 1.5; }
+.tk .fiche-activite a { text-decoration: none; }
+.tk .moi-pt, .tk .moi-pru { color: #ffb547; font-weight: 700; margin-right: 3px; }
+.tk .ap-spark .ap-pru { stroke: #ffb547; stroke-width: 1; opacity: .9; }
+.tk .ap-legende { color: #ffb547; }

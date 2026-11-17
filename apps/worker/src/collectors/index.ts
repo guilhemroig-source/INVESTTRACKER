@@ -12,6 +12,7 @@ import { collectNews } from "./news";
 import { collectFondamentaux } from "./fondamentaux";
 import { collectChange } from "./change";
 import { collectCalendrier } from "./calendrier";
+import { collectSocietes } from "./societes";
 
 export const COLLECTORS: Record<string, { run: Collector; description: string }> = {
   tickers: { run: collectTickers, description: "Noms des sociétés (liste officielle SEC)" },
@@ -22,7 +23,8 @@ export const COLLECTORS: Record<string, { run: Collector; description: string }>
   trump: { run: collectTrump, description: "Donald Trump : OGE 278-T (getsignal), recoupé avec open-cabinet" },
   congres: { run: collectCongres, description: "Élus du Congrès (STOCK Act) via l'API Bargo" },
   change: { run: collectChange, description: "Taux de change euro / dollar de la BCE (Mon portefeuille en euros)" },
-  calendrier: { run: collectCalendrier, description: "Calendrier : dates de résultats et nouvelles des sociétés (Finnhub)" },
+  calendrier: { run: collectCalendrier, description: "Calendrier : dates de résultats des sociétés suivies (Finnhub)" },
+  societes: { run: collectSocietes, description: "Sociétés : profil, activité (Wikipédia) et dernières nouvelles (Finnhub)" },
   prix: { run: collectPrix, description: "Cours journaliers (Tiingo) pour l'analyse technique, par tranches de 45 actions" },
   fondamentaux: { run: collectFondamentaux, description: "Comptes des sociétés (XBRL SEC) : valorisation, croissance, dette, rachats" },
   news: { run: collectNews, description: "Nouvelles autour des opérations : annonces 8-K (EDGAR) et presse (GDELT)" },
@@ -30,4 +32,4 @@ export const COLLECTORS: Record<string, { run: Collector; description: string }>
 };
 
 /** Ordre de « collect all ». edgar-insiders ne tourne que si OpenInsider a échoué. */
-export const ALL_ORDER = ["tickers", "ark", "edgar-musk", "openinsider", "13f", "trump", "congres", "change", "prix", "fondamentaux", "news", "calendrier"] as const;
+export const ALL_ORDER = ["tickers", "ark", "edgar-musk", "openinsider", "13f", "trump", "congres", "change", "prix", "fondamentaux", "news", "calendrier", "societes"] as const;

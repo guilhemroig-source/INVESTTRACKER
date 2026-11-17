@@ -125,3 +125,20 @@ describe("calendrier Finnhub", () => {
     expect(earningRow({ symbol: "X", date: "2026-11-18", hour: "", quarter: 1, year: 2026, epsEstimate: null, epsActual: null, revenueEstimate: null, revenueActual: null }, "now").heure).toBeNull();
   });
 });
+
+describe("profil des sociétés (Wikipédia)", () => {
+  it("vérifie que l'article décrit la bonne société", async () => {
+    const { memeSociete } = await import("../src/collectors/societes");
+    expect(memeSociete("Enact Holdings Inc", "Actavis", "Actavis est une entreprise pharmaceutique")).toBe(false);
+    expect(memeSociete("Automatic Data Processing Inc", "ADP (entreprise)", "ADP Inc. est un fournisseur")).toBe(true);
+    expect(memeSociete("NVIDIA Corp", "Nvidia", "Nvidia Corporation est une société")).toBe(true);
+  });
+  it("résume l'introduction : deux paragraphes, coupés en fin de phrase", async () => {
+    const { resumer } = await import("../src/collectors/societes");
+    expect(resumer("Premier paragraphe assez long pour être gardé ici.\nCourt.\nDeuxième paragraphe assez long pour être gardé lui aussi.\nTroisième paragraphe qui ne sera pas gardé du tout.")).toBe("Premier paragraphe assez long pour être gardé ici.\nDeuxième paragraphe assez long pour être gardé lui aussi.");
+    const long = "Une phrase de quarante caractères environ. ".repeat(40);
+    const r = resumer(long, 300);
+    expect(r.length).toBeLessThanOrEqual(300);
+    expect(r.endsWith(".")).toBe(true);
+  });
+});

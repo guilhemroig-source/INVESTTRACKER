@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { type Bar, type PortfolioTx, addCoursManuel, addJournal, addTx, importLignes, processImports, computePortfolio, getDb, getPortfolio, insertIgnore, listJournal, reviewJournal, schema as s, setRegles, upsertActif } from "../src";
+import { type Bar, type PortfolioTx, addCoursManuel, addJournal, addTx, importLignes, mesEntrees, processImports, computePortfolio, getDb, getPortfolio, insertIgnore, listJournal, reviewJournal, schema as s, setRegles, upsertActif } from "../src";
 
 const day = (i: number) => new Date(Date.UTC(2026, 0, 5) + i * 86400_000).toISOString().slice(0, 10);
 const bars = (f: (i: number) => number): Bar[] => Array.from({ length: 100 }, (_, i) => ({ date: day(i), open: f(i), high: f(i), low: f(i), close: f(i), volume: 1 }));
@@ -151,5 +151,16 @@ describe("journal et portefeuille en base", () => {
     expect(e.valeur).toBeCloseTo(973, 6);
     expect(pf.enAttente).toHaveLength(0);
     expect(processImports(db)).toEqual([]);
+  });
+  it("mes points d'entrée sur le graphique : prix payés et prix de revient convertis en dollars", () => {
+    insertIgnore(db, s.change, [{ date: "2026-10-01", eurusd: 1.2 }, { date: "2026-11-13", eurusd: 1.1 }]);
+    insertIgnore(db, s.prices, [{ ticker: "NVDA", date: "2026-11-13", open: 1, high: 1, low: 1, close: 150, volume: 1, closeBrut: 150 }]);
+    addTx(db, { date: "2026-10-01", type: "achat", ticker: "NVDA", quantite: 2, prix: 100, frais: 0, compte: "CTO", devise: "EUR" });
+    const m = mesEntrees(db, "NVDA", "2026-11-17")!;
+    expect(m.transactions[0]).toMatchObject({ type: "achat", prix: 100, devise: "EUR" });
+    expect(m.transactions[0].prixUsd).toBeCloseTo(120, 9); // 100 € au taux du 1er octobre
+    expect(m.prixRevient).toBeCloseTo(100, 9);
+    expect(m.prixRevientUsd).toBeCloseTo(110, 9); // seuil en dollars au dernier taux connu
+    expect(mesEntrees(db, "AMD", "2026-11-17")).toBeNull();
   });
 });

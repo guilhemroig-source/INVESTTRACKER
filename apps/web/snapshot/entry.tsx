@@ -19,6 +19,8 @@ interface Payload {
   miroirs: MirrorSummary[];
   miroirDetails: Record<string, MirrorResult>;
   newsByTicker: Record<string, ActionData["news"]>;
+  profils: Record<string, ActionData["profil"]>;
+  nouvelles: Record<string, ActionData["nouvelles"]>;
 }
 
 const P = JSON.parse(document.getElementById("tracker-data")!.textContent!) as Payload;
@@ -48,7 +50,7 @@ const barsOf = (t: string): Bar[] => {
     return {
       ticker: t, societe: ops.find((o) => o.societe)?.societe ?? P.data.tickers[t] ?? null,
       bars: barsOf(t).map((b) => ({ date: b.date, close: b.close, volume: b.volume })),
-      ops, news: P.newsByTicker[t] ?? [], fiche, suivi: [],
+      ops, news: P.newsByTicker[t] ?? [], fiche, suivi: [], profil: P.profils[t] ?? null, nouvelles: P.nouvelles[t] ?? [],
     };
   },
   fiche: (t: string) => P.fiches[t] ?? null,

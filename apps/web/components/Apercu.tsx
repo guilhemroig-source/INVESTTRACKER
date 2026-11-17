@@ -10,12 +10,14 @@ const c = (x: number | null | undefined) => (x == null ? "muted" : x >= 0 ? "buy
 const noms = (l: string[] = [], n = 2) => l.slice(0, n).join(", ") + (l.length > n ? ` +${l.length - n}` : "");
 
 /** Mini-courbe des 3 derniers mois (couleur selon la tendance de la période). */
-function Spark({ v }: { v: number[] }) {
+function Spark({ v, pru }: { v: number[]; pru?: number | null }) {
   if (v.length < 2) return <span className="ap-spark ap-spark-vide" aria-hidden />;
-  const w = 72, h = 22, lo = Math.min(...v), hi = Math.max(...v), r = hi - lo || 1;
-  const pts = v.map((x, i) => `${((i / (v.length - 1)) * w).toFixed(1)},${(h - 2 - ((x - lo) / r) * (h - 4)).toFixed(1)}`).join(" ");
+  const w = 72, h = 22, all = pru ? [...v, pru] : v, lo = Math.min(...all), hi = Math.max(...all), r = hi - lo || 1;
+  const yy = (x: number) => (h - 2 - ((x - lo) / r) * (h - 4)).toFixed(1);
+  const pts = v.map((x, i) => `${((i / (v.length - 1)) * w).toFixed(1)},${yy(x)}`).join(" ");
   return (
     <svg className={`ap-spark ${v[v.length - 1] >= v[0] ? "up" : "dn"}`} viewBox={`0 0 ${w} ${h}`} width={w} height={h} aria-hidden>
+      {pru ? <line className="ap-pru" x1={0} x2={w} y1={yy(pru)} y2={yy(pru)} strokeDasharray="3 2" /> : null}
       <polyline points={pts} fill="none" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   );
@@ -24,9 +26,9 @@ function Spark({ v }: { v: number[] }) {
 function Row({ it, meta }: { it: ApercuItem; meta: React.ReactNode }) {
   return (
     <li>
-      <a className="ap-row" href={actionHash(it.ticker)} title={`Ouvrir la page ${it.ticker}`}>
+      <a className="ap-row" href={actionHash(it.ticker)} title={it.activite ? `${it.activite}\n\nOuvrir la page ${it.ticker}` : `Ouvrir la page ${it.ticker}`}>
         <span className="ap-id"><b>{it.ticker}</b><span className="co">{it.societe ?? ""}</span></span>
-        <Spark v={it.cot.spark} />
+        <Spark v={it.cot.spark} pru={it.pruCourbe} />
         <span className="ap-px">
           <span>{it.cot.cours != null ? fmtPrice(it.cot.cours, it.cot.devise) : "—"}</span>
           <span className={c(it.cot.var1m)} title="Variation sur un mois">{it.cot.var1m != null ? `${p(it.cot.var1m)} 1m` : it.cot.cours != null ? "cours saisi" : "pas de cours"}</span>
@@ -79,7 +81,7 @@ export function Apercu() {
             {d.actifs.total ? (
               <p className="ap-sub">
                 {fmtMoney(d.actifs.total.valeur, d.actifs.total.devise)} · <span className={c(d.actifs.total.gainTotalPct)}>{p(d.actifs.total.gainTotalPct)}</span>
-                {d.actifs.total.reference ? <> · {d.actifs.total.reference} <span className={c(d.actifs.total.referencePct)}>{p(d.actifs.total.referencePct)}</span></> : null}
+                {d.actifs.total.reference ? <> · {d.actifs.total.reference} <span className={c(d.actifs.total.referencePct)}>{p(d.actifs.total.referencePct)}</span></> : null} · <span className="ap-legende">┄ prix de revient</span>
               </p>
             ) : <p className="ap-sub">{d.actifs.source === "liste" ? "Actions de votre liste de suivi." : "Vos positions et actions suivies."}</p>}
             {d.actifs.items.length ? <ul>{d.actifs.items.map((it) => (

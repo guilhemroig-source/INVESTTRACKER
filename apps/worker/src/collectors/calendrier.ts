@@ -8,7 +8,7 @@ import { type Collector, isoDate } from "./types";
  * Calendrier (Finnhub, clé gratuite FINNHUB_API_KEY, 60 requêtes/minute) :
  *  - publications de résultats des 14 derniers jours et des 90 prochains, pour les actions suivies
  *    (opérations des investisseurs depuis 6 mois, mon portefeuille, ma liste) ;
- *  - nouvelles des sociétés de mon portefeuille et de ma liste (7 derniers jours).
+ *  (les nouvelles des sociétés sont collectées par « societes »).
  */
 const API = "https://finnhub.io/api/v1";
 const addDays = (iso: string, n: number) => isoDate(new Date(Date.parse(iso + "T00:00:00Z") + n * 86400_000));
@@ -57,25 +57,6 @@ export const collectCalendrier: Collector = async (db) => {
   }
   details.push(`${res} publication(s) de résultats suivies (J−14 à J+90)`);
 
-  // Nouvelles des sociétés de mon portefeuille et de ma liste
-  let nv = 0;
-  for (const t of miens.slice(0, 30)) {
-    try {
-      const items = await getJson<FinnhubNews[]>(`${API}/company-news?symbol=${encodeURIComponent(t)}&from=${addDays(today, -7)}&to=${today}`, opts);
-      lues += items.length;
-      const rows = items.filter((n) => n.headline).sort((a, b) => b.datetime - a.datetime).slice(0, 8).map((n) => {
-        const dt = new Date(n.datetime * 1000).toISOString();
-        return { cle: `fh:${n.id}`, date: dt.slice(0, 10), heure: dt.slice(11, 16), ticker: t, type: "nouvelle", titre: n.headline, source: n.source || "Finnhub", url: n.url || null, collecteLe: now,
-          details: JSON.stringify({ resume: n.summary?.slice(0, 600) ?? "" }) };
-      });
-      for (const row of rows) nv += db.insert(s.evenements).values(row).onConflictDoNothing().run().changes;
-    } catch (e) {
-      if (e instanceof HttpError && e.status === 429) { details.push("Quota Finnhub atteint : reprise au prochain passage"); break; }
-      details.push(`${t} : ${(e as Error).message}`);
-    }
-  }
-  details.push(`${nv} nouvelle(s) sur ${Math.min(miens.length, 30)} action(s) de mon portefeuille et de ma liste`);
-  db.run(sql`DELETE FROM evenements WHERE type = 'nouvelle' AND date < ${addDays(today, -60)}`);
-  nouvelles = res + nv;
+  nouvelles = res;
   return { lues, nouvelles, details, donneesAu: today };
 };

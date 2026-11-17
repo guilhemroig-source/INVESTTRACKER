@@ -195,6 +195,32 @@ export function getPortfolio(db: Db, today: string): PortfolioView {
   return { ...res, regles, devise: D, transactions: txs, societes, cotes, avertissements, change: fx.dernier, enAttente: importsEnAttente(db) };
 }
 
+// ------------------------------------------------------------------ Mes points d'entrée (graphiques)
+
+export interface MesEntrees {
+  transactions: { date: string; type: "achat" | "vente"; quantite: number; prix: number; devise: string; prixUsd: number | null; compte: string }[];
+  /** Prix de revient converti en dollars au dernier taux connu : le cours à dépasser pour être gagnant dans la devise du portefeuille */
+  prixRevientUsd: number | null; prixRevient: number | null; devise: string; quantite: number;
+}
+
+/** Achats et ventes d'une action de mon portefeuille, en dollars (devise des graphiques), et mon prix de revient. */
+export function mesEntrees(db: Db, ticker: string, today: string): MesEntrees | null {
+  const txs = listTx(db).filter((t) => t.ticker === ticker && t.type !== "dividende");
+  if (!txs.length) return null;
+  const fx = fxTable(db);
+  const pf = getPortfolio(db, today);
+  const pos = pf.positions.filter((p) => p.ticker === ticker && p.quantite > 0);
+  const q = pos.reduce((a, p) => a + p.quantite, 0);
+  const pru = q ? pos.reduce((a, p) => a + p.pru * p.quantite, 0) / q : null;
+  const ref = fx.dernier?.date ?? today;
+  return {
+    transactions: txs.map((t) => ({ date: t.date, type: t.type as "achat" | "vente", quantite: t.quantite, prix: t.prix, devise: t.devise, prixUsd: fx.convert(t.prix, t.devise, "USD", t.date), compte: t.compte }))
+      .sort((a, b) => a.date.localeCompare(b.date)),
+    prixRevient: pru, devise: pf.devise, quantite: q,
+    prixRevientUsd: pru != null ? fx.convert(pru, pf.devise, "USD", ref) : null,
+  };
+}
+
 // ------------------------------------------------------------------ Import depuis l'appli d'un courtier
 
 /**

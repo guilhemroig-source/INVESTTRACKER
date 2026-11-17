@@ -47,8 +47,9 @@ export function getCalendrier(db: Db, today: string, jours = 45): Calendrier {
     const t = r.ticker;
     const mien = !!t && (detenues.has(t) || liste.has(t));
     const i = t ? inv.get(t) : undefined;
-    // Ne garder que mes actions et celles des investisseurs suivis
+    // Ne garder que mes actions et celles des investisseurs suivis ; les nouvelles, seulement pour mes actions
     if (!mien && !i) continue;
+    if (r.type === "nouvelle" && !mien) continue;
     out.push({
       date: r.date, heure: r.heure, type: r.type as EvenementVue["type"], ticker: t, societe: t ? noms.get(t) ?? null : null,
       titre: r.titre, details: r.details ? JSON.parse(r.details) : null, source: r.source, url: r.url,

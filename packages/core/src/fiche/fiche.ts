@@ -185,4 +185,4 @@ export function finances(f: Fundamentals | null, cours: number | null): Finances
   return out;
 }
 
-export interface Fiche { ticker: string; smart: SmartMoney; risque: Risque; finances: Finances | null; financesStatut: string }
+export interface Fiche { ticker: string; activite?: { secteur: string | null; resume: string | null; langue: string | null; wikipedia: string | null } | null; smart: SmartMoney; risque: Risque; finances: Finances | null; financesStatut: string }

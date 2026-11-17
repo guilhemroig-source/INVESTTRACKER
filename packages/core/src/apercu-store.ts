@@ -4,8 +4,9 @@ import type { Bar } from "./ta";
 import { barsOf } from "./analysis-store";
 import { acteurOf } from "./fiche";
 import { type ClassementRow, getClassement } from "./fiche-store";
-import { getPortfolio, lastPrice, listJournal } from "./portfolio-store";
+import { fxTable, getPortfolio, lastPrice, listJournal } from "./portfolio-store";
 import { listWatch } from "./watch-store";
+import { getProfil, phraseActivite } from "./profil-store";
 import { type EvenementVue, getCalendrier } from "./calendrier-store";
 
 /** Cours d'une action pour l'aperçu : dernier cours, variations 1 jour / 1 mois, courbe de 3 mois. */
@@ -14,6 +15,10 @@ export interface ApercuItem {
   ticker: string; societe: string | null; cot: Cotation;
   score?: number; acheteurs?: string[]; vendeurs?: string[]; derniere?: string; retard?: number | null;
   gainPct?: number | null; poids?: number | null; alertes?: string[];
+  /** Mon prix de revient dans l'unité de la mini-courbe (dollars), pour les actions cotées de mon portefeuille */
+  pruCourbe?: number | null;
+  /** Ce que fait l'entreprise, en une phrase */
+  activite?: string | null;
 }
 export interface Apercu {
   date: string;
@@ -59,7 +64,7 @@ export function selectPression(rows: ClassementRow[], n = 5): ClassementRow[] {
 export function getApercu(db: Db, today: string, classement: ClassementRow[] = getClassement(db, today)): Apercu {
   const cot = (t: string) => cotationFrom(barsOf(db, t), lastPrice(db, t));
   const item = (r: ClassementRow): ApercuItem => ({
-    ticker: r.ticker, societe: r.societe, cot: cot(r.ticker), score: r.score, acheteurs: r.acheteurs, vendeurs: r.vendeurs, derniere: r.derniere, retard: r.retard,
+    ticker: r.ticker, societe: r.societe, cot: cot(r.ticker), activite: phraseActivite(getProfil(db, r.ticker)?.description), score: r.score, acheteurs: r.acheteurs, vendeurs: r.vendeurs, derniere: r.derniere, retard: r.retard,
   });
   const nom = (t: string) => classement.find((r) => r.ticker === t)?.societe
     ?? db.get<{ n: string | null }>(sql`SELECT nom n FROM tickers WHERE ticker = ${t}`)?.n ?? null;
@@ -67,6 +72,7 @@ export function getApercu(db: Db, today: string, classement: ClassementRow[] = g
   // Mes actifs : le portefeuille s'il existe, sinon les actions de la liste de suivi
   let actifs: Apercu["actifs"] = { source: "aucun", items: [], total: null };
   const pf = getPortfolio(db, today);
+  const fx = fxTable(db);
   const pos = pf.positions.filter((p) => p.quantite > 0).sort((a, b) => (b.valeur ?? 0) - (a.valeur ?? 0));
   if (pos.length) {
     actifs = {
@@ -75,7 +81,8 @@ export function getApercu(db: Db, today: string, classement: ClassementRow[] = g
         // Variation et courbe : celles de l'actif coté, ou de l'indice qui prolonge un cours saisi ; cours dans la devise du portefeuille
         const q = pf.cotes[p.ticker];
         const base = cotationFrom(q?.source === "manuel" ? [] : barsOf(db, q?.indice ?? p.ticker));
-        return { ticker: p.ticker, societe: pf.societes[p.ticker] ?? nom(p.ticker), cot: { ...base, cours: p.cours, date: p.dateCours, devise: pf.devise }, gainPct: p.gainLatentPct, poids: p.poids, alertes: p.alertes };
+        const pruCourbe = q && q.source === "marche" && base.spark.length ? fx.convert(p.pru, pf.devise, "USD", fx.dernier?.date ?? today) : null;
+        return { ticker: p.ticker, societe: pf.societes[p.ticker] ?? nom(p.ticker), cot: { ...base, cours: p.cours, date: p.dateCours, devise: pf.devise }, gainPct: p.gainLatentPct, poids: p.poids, alertes: p.alertes, pruCourbe };
       }),
       total: { valeur: pf.totaux.valeur, devise: pf.devise, gainTotalPct: pf.totaux.gainTotalPct, reference: pf.reference?.ticker ?? null, referencePct: pf.reference?.gainTotalPct ?? null },
     };

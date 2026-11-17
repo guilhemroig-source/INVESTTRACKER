@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { build } from "esbuild";
-import { barsOf, getApercu, getCalendrier, getClassement, getDashboardData, getDb, getFiche, getMirror, getMirrors, newsAnalysisFor, schema as s, todayParis, trackRecords, tradeInput } from "@tracker/core";
+import { barsOf, getApercu, getCalendrier, getClassement, getNouvelles, getProfil, getDashboardData, getDb, getFiche, getMirror, getMirrors, newsAnalysisFor, schema as s, todayParis, trackRecords, tradeInput } from "@tracker/core";
 
 const out = path.resolve(process.argv[2] ?? "snapshot.html");
 const webDir = path.resolve(import.meta.dirname, "..");
@@ -44,6 +44,9 @@ const newsByTicker: Record<string, unknown[]> = {};
 for (const n of db.select({ ticker: s.newsItems.ticker, date: s.newsItems.date, kind: s.newsItems.kind, titre: s.newsItems.titre, resume: s.newsItems.resume, source: s.newsItems.source, url: s.newsItems.url, items: s.newsItems.items, ton: s.newsItems.ton }).from(s.newsItems).all()) {
   (newsByTicker[n.ticker] ??= []).push(n);
 }
+// Profil (activité) et dernières nouvelles de chaque société
+const profils: Record<string, unknown> = {}, nouvelles: Record<string, unknown> = {};
+for (const t of Object.keys(fiches)) { const p = getProfil(db, t); if (p) profils[t] = p; const n = getNouvelles(db, t, 10); if (n.length) nouvelles[t] = n; }
 for (const k of Object.keys(newsByTicker)) (newsByTicker[k] as { date: string }[]).sort((a, b) => b.date.localeCompare(a.date));
 
 const bundle = await build({
@@ -57,7 +60,7 @@ const js = bundle.outputFiles[0].text.replace(/<\/script/gi, "<\\/script");
 const cssDir = path.join(webDir, ".next/static/css");
 const css = fs.readdirSync(cssDir).filter((f) => f.endsWith(".css")).map((f) => fs.readFileSync(path.join(cssDir, f), "utf8")).join("\n");
 
-const payload = JSON.stringify({ data, today, genereLe: new Date().toISOString(), prices, trades, classement, apercu, calendrier, fiches, miroirs, miroirDetails, newsByTicker }).replace(/</g, "\\u003c");
+const payload = JSON.stringify({ data, today, genereLe: new Date().toISOString(), prices, trades, classement, apercu, calendrier, fiches, profils, nouvelles, miroirs, miroirDetails, newsByTicker }).replace(/</g, "\\u003c");
 
 const html = `<title>Tracker des grands investisseurs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">

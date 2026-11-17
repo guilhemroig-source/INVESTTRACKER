@@ -43,10 +43,48 @@ export function ActionView({ ticker, analyses, onClose }: { ticker: string; anal
         </div>
       </div>
 
+      <div className="grid action-societe">
+        <div className="card">
+          <h2>Ce que fait {d.profil?.nom ?? d.societe ?? d.ticker}</h2>
+          {d.profil?.description ? <>
+            <div className="profil-texte">
+              {d.profil.logo && <img className="profil-logo" src={d.profil.logo} alt="" width={44} height={44} loading="lazy" />}
+              {d.profil.description.split("\n").map((para, i) => <p key={i}>{para}</p>)}
+            </div>
+            <p className="note" style={{ marginBottom: 0 }}>Source : <a href={d.profil.wikipedia ?? "#"} target="_blank" rel="noreferrer">Wikipédia{d.profil.langue === "en" ? " (en anglais, pas d'article français)" : ""} ↗</a></p>
+          </> : <p className="note">{d.profil ? "Pas d'article Wikipédia trouvé pour cette société." : "Profil pas encore collecté (collecteur « societes », clé Finnhub)."}{d.profil?.secteur ? ` Secteur : ${d.profil.secteur}.` : ""}</p>}
+          {d.profil && (
+            <dl className="profil-faits">
+              {d.profil.secteur && <div><dt>Secteur</dt><dd>{d.profil.secteur}</dd></div>}
+              {d.profil.pays && <div><dt>Pays</dt><dd>{d.profil.pays}</dd></div>}
+              {d.profil.capitalisation != null && <div><dt>Capitalisation</dt><dd>{fmtUsd(d.profil.capitalisation * 1e6)}</dd></div>}
+              {d.profil.ipo && <div><dt>En bourse depuis</dt><dd>{d.profil.ipo.slice(0, 4)}</dd></div>}
+              {d.profil.bourse && <div><dt>Marché</dt><dd>{d.profil.bourse.replace(/ NMS.*| GLOBAL.*/i, "")}</dd></div>}
+              {d.profil.site && <div><dt>Site</dt><dd><a href={d.profil.site} target="_blank" rel="noreferrer">{d.profil.site.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")} ↗</a></dd></div>}
+            </dl>
+          )}
+        </div>
+        <div className="card">
+          <h2>Dernières nouvelles</h2>
+          <p className="note">Les plus récentes sur 7 jours (Finnhub, médias anglophones), mises à jour deux fois par jour.</p>
+          <ol className="timeline">{d.nouvelles.map((n, i) => (
+            <li key={i} className="ev k-press">
+              <div className="ev-date"><span>{fmtDate(n.date, false)}</span>{n.heure && <small>{n.heure} UTC</small>}</div>
+              <div className="ev-body">
+                <div className="ev-title">{n.url ? <a href={n.url} target="_blank" rel="noreferrer">{n.titre}</a> : n.titre}</div>
+                <div className="ev-src">{n.source}</div>
+                {n.resume && <details className="ev-resume"><summary>Résumé</summary><p>{n.resume}</p></details>}
+              </div>
+            </li>))}
+            {!d.nouvelles.length && <li className="muted">Pas encore de nouvelle collectée pour {d.ticker}.</li>}
+          </ol>
+        </div>
+      </div>
+
       <div className="card">
         <h2>Le cours et les opérations des investisseurs</h2>
-        <p className="note">Chaque repère est placé au jour de l&apos;opération (fin de trimestre pour un 13F). Survolez le graphique pour le détail de la journée. Cours ajustés (Tiingo).</p>
-        <PriceChart bars={d.bars} news={official.map((n) => ({ date: n.date, titre: n.titre, resume: n.resume }))}
+        <p className="note">Chaque repère est placé au jour de l&apos;opération (fin de trimestre pour un 13F). Survolez le graphique pour le détail de la journée. Cours ajustés (Tiingo).{d.mesEntrees ? " En orange : vos achats (prix payé converti en dollars au taux du jour) et votre prix de revient, soit le cours en dollars au-dessus duquel vous êtes gagnant, au taux de change actuel." : ""}</p>
+        <PriceChart bars={d.bars} moi={d.mesEntrees} news={official.map((n) => ({ date: n.date, titre: n.titre, resume: n.resume }))}
           ops={d.ops.map((o) => ({ date: o.dateOperation ?? o.datePublication, sens: o.sens, source: o.source, qui: o.qui, operation: o.operation, montantUsd: o.montantUsd, fourchette: o.fourchette }))} />
       </div>
 
@@ -107,7 +145,7 @@ export function ActionView({ ticker, analyses, onClose }: { ticker: string; anal
       </div>
 
       <h2 className="section-title">Fiche {d.ticker}</h2>
-      <FicheView fiche={d.fiche} />
+      <FicheView fiche={d.fiche} sansActivite />
     </section>
   );
 }

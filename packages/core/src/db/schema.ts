@@ -456,3 +456,24 @@ export const evenements = sqliteTable("evenements", {
   url: text("url"),
   collecteLe: text("collecte_le").notNull(),
 }, (t) => [uniqueIndex("evenements_cle").on(t.cle), index("evenements_date").on(t.date)]);
+
+/** Profil d'une société : identité (Finnhub), activité en français (Wikipédia via Wikidata), suivi des nouvelles. */
+export const profils = sqliteTable("profils", {
+  ticker: text("ticker").primaryKey(),
+  nom: text("nom"),
+  secteur: text("secteur"),
+  pays: text("pays"),
+  bourse: text("bourse"),
+  ipo: text("ipo"),
+  capitalisation: real("capitalisation"), // millions de dollars
+  site: text("site"),
+  logo: text("logo"),
+  description: text("description"),
+  langue: text("langue"), // 'fr' | 'en'
+  wikipedia: text("wikipedia"), // URL de l'article
+  wikidata: text("wikidata"),
+  profilLe: text("profil_le"),
+  /** Dernière recherche Wikipédia (réessai après 7 jours si aucune description) */
+  wikiLe: text("wiki_le"),
+  nouvellesLe: text("nouvelles_le"),
+});

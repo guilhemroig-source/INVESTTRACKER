@@ -17,10 +17,17 @@ function Metric({ label, value, sub, cls }: { label: string; value: string; sub?
   );
 }
 
-export function FicheView({ fiche }: { fiche: Fiche }) {
+export function FicheView({ fiche, sansActivite = false }: { fiche: Fiche; sansActivite?: boolean }) {
   const { smart: s, risque: r, finances: f } = fiche;
+  const a = fiche.activite;
   return (
     <div className="fiche">
+      {!sansActivite && a && (a.resume || a.secteur) && (
+        <div className="card fiche-activite">
+          <h2>Ce que fait l&apos;entreprise</h2>
+          <p>{a.resume ?? `Secteur : ${a.secteur}.`}{a.resume && a.secteur ? <span className="muted"> · {a.secteur}</span> : null}{a.wikipedia && <> <a href={a.wikipedia} target="_blank" rel="noreferrer" className="muted">Wikipédia{a.langue === "en" ? " (en)" : ""} ↗</a></>}</p>
+        </div>
+      )}
       <div className="card fiche-score">
         <div className="score-big"><b>{s.score}</b><span>/100</span></div>
         <div>

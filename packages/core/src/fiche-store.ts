@@ -1,3 +1,4 @@
+import { type Nouvelle, type Profil, getNouvelles, getProfil, phraseActivite } from "./profil-store";
 import { desc, eq, gte, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
 import * as s from "./db/schema";
@@ -34,8 +35,10 @@ export function getFiche(db: Db, ticker: string, today: string, track = trackRec
   const brut = db.select({ c: s.prices.closeBrut }).from(s.prices).where(eq(s.prices.ticker, ticker)).orderBy(desc(s.prices.date)).limit(1).get()?.c ?? null;
   const r = risque(bars, barsOf(db, "SPY"), barsOf(db, "QQQ"), brut);
   const f = db.select().from(s.fundamentals).where(eq(s.fundamentals.ticker, ticker)).get();
+  const p = getProfil(db, ticker);
   return {
     ticker,
+    activite: p ? { secteur: p.secteur, resume: phraseActivite(p.description), langue: p.langue, wikipedia: p.wikipedia } : null,
     smart: smartMoney(opsOf(db, ticker), bars, today, track),
     risque: r,
     finances: f?.statut === "ok" ? finances(f, r.cours) : null,
@@ -110,6 +113,10 @@ export interface ActionData {
   news: { date: string; kind: string; titre: string; resume: string | null; source: string | null; url: string | null; items: string | null; ton: number | null }[];
   fiche: Fiche;
   suivi: { id: number; type: string; valeur: string }[];
+  profil: Profil | null;
+  nouvelles: Nouvelle[];
+  /** Mes achats et ventes et mon prix de revient (si l'action est dans mon portefeuille) */
+  mesEntrees?: import("./portfolio-store").MesEntrees | null;
 }
 
 /** Tout ce qu'il faut pour la page d'une action. */
@@ -121,5 +128,5 @@ export function getActionData(db: Db, ticker: string, today: string): ActionData
     .from(s.newsItems).where(eq(s.newsItems.ticker, ticker)).orderBy(desc(s.newsItems.date)).all();
   const acteurs = new Set(ops.map(acteurOf));
   const suivi = db.select().from(s.watchlist).all().filter((w) => (w.type === "action" && w.valeur === ticker) || (w.type === "investisseur" && acteurs.has(w.valeur))).map((w) => ({ id: w.id, type: w.type, valeur: w.valeur }));
-  return { ticker, societe, bars, ops, news, fiche: getFiche(db, ticker, today), suivi };
+  return { ticker, societe, bars, ops, news, fiche: getFiche(db, ticker, today), suivi, profil: getProfil(db, ticker), nouvelles: getNouvelles(db, ticker) };
 }

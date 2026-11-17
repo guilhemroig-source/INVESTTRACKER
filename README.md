@@ -212,6 +212,7 @@ Modifier le schéma : éditer `packages/core/src/db/schema.ts`, puis `pnpm db:ge
 | `13f` | Dernier 13F de chaque fonds (insiderset, colonne « Value » ignorée), puis vérification ligne à ligne sur EDGAR par différence entre les tables d'information de deux trimestres. Les mouvements officiels absents d'insiderset sont ajoutés quand leur CUSIP correspond à un symbole connu. Détecte un 13F déposé sur EDGAR avant la mise à jour d'insiderset. | www.insiderset.com, efts.sec.gov, www.sec.gov |
 | `trump` | OGE 278-T retranscrits par getsignal (statistiques, déclarations, 150 dernières transactions, top des actions), nombre de transactions de la dernière déclaration recoupé avec open-cabinet | getsignal.finance, open-cabinet.org |
 | `congres` | Transactions et classement des élus (API gratuite Bargo, attribution affichée) | www.bargo.ai |
+| `societes` | Profil de chaque société suivie (secteur, pays, capitalisation, site : Finnhub, tous les 30 jours), ce que fait l'entreprise en français (introduction de l'article Wikipédia trouvé par le symbole dans Wikidata, vérifiée par le nom ; à défaut l'article anglais ou la définition courte de Wikidata), dernières nouvelles (Finnhub, 7 jours : mes actions à chaque passage, les autres toutes les 12 heures) | finnhub.io, wikidata.org, wikipedia.org |
 | `calendrier` | Dates de résultats J−14 à J+90 des actions suivies (estimations de BPA et de chiffre d'affaires, puis chiffres publiés) ; nouvelles des sociétés de mon portefeuille et de ma liste | finnhub.io |
 | `change` | Taux de change euro / dollar de référence de la BCE (depuis 2015, puis chaque jour) | data-api.ecb.europa.eu |
 | `prix` | Cours journaliers ajustés pour l'analyse technique et le portefeuille, plus SPY, QQQ et VT (ETF monde) comme références ; cryptos du portefeuille | api.tiingo.com |
@@ -287,6 +288,9 @@ Pour chaque investisseur : un suiveur qui copie chacun de ses achats **au moment
 Trois types de règles : une **action** (achats, ventes ou les deux), un **investisseur**, un **seuil de score smart money**. Après chaque collecte, les nouvelles opérations qui correspondent partent dans un SMS groupé (jamais deux fois la même), et le SMS de 7h47 ajoute « Ta liste : N mouvements ». Les ventes de rémunération ne déclenchent pas d'alerte « investisseur ». Routes : `GET/POST /api/watchlist`, `DELETE /api/watchlist/<id>`.
 
 ### Page action (`#action-NVDA`, clic sur n'importe quel symbole)
+
+En tête : **ce que fait l'entreprise** (introduction Wikipédia en français, secteur, pays, capitalisation, ancienneté en bourse, site) et ses **dernières nouvelles** (Finnhub, résumé dépliable). Pour une action de « Mon portefeuille », le graphique montre **mes achats et ventes** (prix payé converti en dollars au taux BCE du jour) et **mon prix de revient** en pointillés orange : le cours en dollars au-dessus duquel la ligne est gagnante en euros au taux actuel ; l'écart s'affiche au survol. La même ligne figure sur les mini-courbes de « Mes actifs » dans l'aperçu. Les fiches dépliables (classement, analyses) commencent par une phrase sur l'activité de la société.
+
 
 Cours ajusté (3 mois, 6 mois, 1 an, tout) avec les achats ▲ et ventes ▼ des investisseurs (initiale de la source, filtres par source, infobulle de la journée) et les annonces officielles ◆ ; toutes les opérations sur l'action (dépliables) ; annonces 8-K et presse ; fiche complète ; bouton « Suivre ».
 
@@ -370,7 +374,7 @@ Style « terminal de trading » repris du prototype (`ui-reference/`) : fond som
 ## 10. Tests
 
 ```bash
-pnpm test        # 118 tests (vitest) dans les 3 paquets
+pnpm test        # 124 tests (vitest) dans les 3 paquets
 pnpm typecheck   # TypeScript strict
 ```
 
