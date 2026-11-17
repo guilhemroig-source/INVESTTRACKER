@@ -4,7 +4,12 @@ import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-const db = process.env.DATABASE_PATH || path.resolve("var/tracker.db");
+// Même règle que packages/core (databasePath) : sur Railway, la base va sur le volume attaché s'il y en a un.
+let db = process.env.DATABASE_PATH || path.resolve("var/tracker.db");
+const vol = process.env.RAILWAY_VOLUME_MOUNT_PATH;
+if (vol && !path.resolve(db).startsWith(path.resolve(vol) + path.sep)) db = path.join(vol, "tracker.db");
+process.env.DATABASE_PATH = db; // transmis à l'appli web et au planificateur
+console.log(`[démarrage] base : ${db}${vol ? ` (volume Railway monté sur ${vol})` : " (aucun volume Railway détecté : la base sera perdue au prochain déploiement)"}`);
 const fresh = !fs.existsSync(db);
 const run = (args) => spawnSync("pnpm", ["-s", ...args], { stdio: "inherit" }).status;
 

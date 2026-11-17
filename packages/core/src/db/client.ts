@@ -21,9 +21,20 @@ export type Db = BetterSQLite3Database<typeof schema>;
 
 const g = globalThis as unknown as { __trackerDb?: Db };
 
+/**
+ * Fichier de la base. Sur Railway, si un volume est attaché (RAILWAY_VOLUME_MOUNT_PATH) et que DATABASE_PATH
+ * n'est pas dessus, la base va sur le volume : sinon elle serait perdue à chaque déploiement.
+ */
+export function databasePath(): string {
+  const file = process.env.DATABASE_PATH || path.join(repoRoot(), "var", "tracker.db");
+  const vol = process.env.RAILWAY_VOLUME_MOUNT_PATH;
+  if (vol && !path.resolve(file).startsWith(path.resolve(vol) + path.sep)) return path.join(vol, "tracker.db");
+  return file;
+}
+
 export function getDb(): Db {
   if (g.__trackerDb) return g.__trackerDb;
-  const file = process.env.DATABASE_PATH || path.join(repoRoot(), "var", "tracker.db");
+  const file = databasePath();
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const sqlite = new Database(file);
   sqlite.pragma("journal_mode = WAL");
