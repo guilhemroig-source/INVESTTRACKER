@@ -47,7 +47,9 @@ export const collectPrix: Collector = async (db) => {
   const today0 = isoDate(new Date());
   for (const l of importsEnAttente(db).filter((x) => (x.cotation ?? "marche") === "marche")) {
     const t = l.ticker.trim().toUpperCase();
-    if (!needs.some((n) => n.ticker === t)) needs.unshift({ ticker: t, first: today0, last: today0, pub: today0 });
+    const i = needs.findIndex((n) => n.ticker === t);
+    const n = i >= 0 ? needs.splice(i, 1)[0] : { ticker: t, first: today0, last: today0, pub: today0 };
+    needs.unshift(n); // déjà connue (opérations d'investisseurs) ou non : en tête de file
   }
   const status = new Map(db.select().from(s.priceStatus).all().map((r) => [r.ticker, r]));
 
@@ -66,7 +68,28 @@ export const collectPrix: Collector = async (db) => {
 
   let lues = 0, nouvelles = 0, faits = 0;
   const details: string[] = [];
-  for (const job of todo.slice(0, budget)) {
+  // Cryptos de « Mon portefeuille » (avant les actions : le quota Tiingo est souvent épuisé en fin de passage) : paire Tiingo (ex. btcusd), 2 ans d'historique puis mise à jour
+  for (const a of actifs.filter((x) => x.cotation === "crypto" && x.indice)) {
+    const st = status.get(a.ticker);
+    if (st?.derniereDate && st.derniereDate >= addDays(today, -1)) continue;
+    const start = st?.derniereDate ? addDays(st.derniereDate, 1) : addDays(today, -730);
+    const now = new Date().toISOString();
+    try {
+      const res = await getJson<{ priceData: { date: string; open: number; high: number; low: number; close: number; volume: number }[] }[]>(
+        `https://api.tiingo.com/tiingo/crypto/prices?tickers=${encodeURIComponent(a.indice!.toLowerCase())}&startDate=${start}&resampleFreq=1day`,
+        { userAgent: TOOL_UA, cacheTtl: 0, headers: { Authorization: `Token ${key}` } });
+      faits++;
+      const rows = (res[0]?.priceData ?? []).filter((b) => b.close > 0).map((b) => ({ ticker: a.ticker, date: b.date.slice(0, 10), open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume, closeBrut: b.close }));
+      lues += rows.length; nouvelles += rows.length;
+      db.transaction((tx) => { for (const r of rows) tx.insert(s.prices).values(r).onConflictDoUpdate({ target: [s.prices.ticker, s.prices.date], set: { open: r.open, high: r.high, low: r.low, close: r.close, volume: r.volume, closeBrut: r.closeBrut } }).run(); });
+      const sp = db.get<{ a: string | null; b: string | null }>(sql`SELECT MIN(date) a, MAX(date) b FROM prices WHERE ticker = ${a.ticker}`);
+      upsertStatus(db, { ticker: a.ticker, statut: "ok", premiereDate: sp?.a ?? start, derniereDate: sp?.b ?? today, dernierAppel: now, erreur: null });
+    } catch (e) {
+      if (e instanceof HttpError && e.status === 429) { details.push("Quota Tiingo atteint : reprise au prochain passage"); break; }
+      details.push(`${a.ticker} (crypto ${a.indice}) : ${(e as Error).message}`);
+    }
+  }
+  for (const job of todo.slice(0, Math.max(0, budget - faits))) {
     const url = `https://api.tiingo.com/tiingo/daily/${encodeURIComponent(tiingoSymbol(job.ticker))}/prices?startDate=${job.start}&endDate=${today}`;
     const now = new Date().toISOString();
     try {
@@ -93,28 +116,6 @@ export const collectPrix: Collector = async (db) => {
       if (e instanceof HttpError && e.status === 429) { details.push("Quota Tiingo atteint : reprise au prochain passage"); break; }
       upsertStatus(db, { ticker: job.ticker, statut: "erreur", premiereDate: status.get(job.ticker)?.premiereDate ?? null, derniereDate: status.get(job.ticker)?.derniereDate ?? null, dernierAppel: now, erreur: (e as Error).message });
       details.push(`${job.ticker} : ${(e as Error).message}`);
-    }
-  }
-  // Cryptos de « Mon portefeuille » : paire Tiingo (ex. btcusd), 2 ans d'historique puis mise à jour
-  for (const a of actifs.filter((x) => x.cotation === "crypto" && x.indice)) {
-    if (faits >= budget) break;
-    const st = status.get(a.ticker);
-    if (st?.derniereDate && st.derniereDate >= addDays(today, -1)) continue;
-    const start = st?.derniereDate ? addDays(st.derniereDate, 1) : addDays(today, -730);
-    const now = new Date().toISOString();
-    try {
-      const res = await getJson<{ priceData: { date: string; open: number; high: number; low: number; close: number; volume: number }[] }[]>(
-        `https://api.tiingo.com/tiingo/crypto/prices?tickers=${encodeURIComponent(a.indice!.toLowerCase())}&startDate=${start}&resampleFreq=1day`,
-        { userAgent: TOOL_UA, cacheTtl: 0, headers: { Authorization: `Token ${key}` } });
-      faits++;
-      const rows = (res[0]?.priceData ?? []).filter((b) => b.close > 0).map((b) => ({ ticker: a.ticker, date: b.date.slice(0, 10), open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume, closeBrut: b.close }));
-      lues += rows.length; nouvelles += rows.length;
-      db.transaction((tx) => { for (const r of rows) tx.insert(s.prices).values(r).onConflictDoUpdate({ target: [s.prices.ticker, s.prices.date], set: { open: r.open, high: r.high, low: r.low, close: r.close, volume: r.volume, closeBrut: r.closeBrut } }).run(); });
-      const sp = db.get<{ a: string | null; b: string | null }>(sql`SELECT MIN(date) a, MAX(date) b FROM prices WHERE ticker = ${a.ticker}`);
-      upsertStatus(db, { ticker: a.ticker, statut: "ok", premiereDate: sp?.a ?? start, derniereDate: sp?.b ?? today, dernierAppel: now, erreur: null });
-    } catch (e) {
-      if (e instanceof HttpError && e.status === 429) { details.push("Quota Tiingo atteint : reprise au prochain passage"); break; }
-      details.push(`${a.ticker} (crypto ${a.indice}) : ${(e as Error).message}`);
     }
   }
   const reste = Math.max(0, todo.length - faits);
