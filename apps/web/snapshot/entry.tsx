@@ -13,6 +13,7 @@ interface Payload {
   prices: Record<string, [string[], number[], number[], number[], number[], number[]]>;
   trades: Record<string, TradeInput & { ticker: string; news?: NewsAnalysis }>;
   classement: ClassementRow[];
+  apercu: unknown;
   fiches: Record<string, Fiche>;
   miroirs: MirrorSummary[];
   miroirDetails: Record<string, MirrorResult>;
@@ -31,6 +32,7 @@ const barsOf = (t: string): Bar[] => {
 
 (globalThis as unknown as { __TRACKER_SNAPSHOT__: unknown }).__TRACKER_SNAPSHOT__ = {
   classement: P.classement,
+  apercu: P.apercu,
   miroirs: P.miroirs,
   miroir: (a: string) => {
     if (P.miroirDetails[a]) return P.miroirDetails[a];

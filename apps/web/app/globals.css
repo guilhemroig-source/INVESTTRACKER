@@ -309,3 +309,39 @@ html, body { background: #05080d; margin: 0; }
 .tk .jreview { margin-top: 6px; }
 .tk .jentry .pill-big { font-size: .62rem; padding: 1px 7px; }
 .tk .jentry .pill-big.buy { color: var(--tk-accent); } .tk .jentry .pill-big.sell { color: var(--tk-accent-2); }
+
+/* ---- Aperçu (haut de page) ---- */
+.tk .apercu { margin: var(--cds-gap-md) 0 var(--cds-gap-md); }
+.tk .ap-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--cds-gap-sm); margin-bottom: var(--cds-gap-sm); }
+.tk .ap-head h2 { font-family: var(--tk-mono); font-size: .8rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; margin: 0; color: #f3f6fa; }
+.tk .ap-head h2 .muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.tk .btn-link { font-family: var(--tk-mono); font-size: .7rem; background: none; border: 0; color: var(--color-fg-muted); cursor: pointer; padding: 4px 0; }
+.tk .btn-link:hover { color: var(--color-fg); }
+.tk .ap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); gap: var(--cds-gap-md); }
+.tk .ap-card { padding: var(--cds-pad-md); }
+.tk .ap-card + .ap-card { margin-top: 0; }
+.tk .ap-card h3 { font-family: var(--tk-mono); font-size: .74rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; margin: 0; color: #f3f6fa; }
+.tk .ap-card h3.buy { color: var(--tk-accent); } .tk .ap-card h3.sell { color: var(--tk-accent-2); }
+.tk .ap-sub { font-size: .74rem; color: var(--color-fg-muted); margin: 4px 0 var(--cds-gap-sm); line-height: 1.4; font-family: var(--tk-mono); }
+.tk .ap-card ul { list-style: none; margin: 0; padding: 0; }
+.tk .ap-card li + li { border-top: 1px solid var(--color-border-line); }
+.tk .ap-row { display: grid; grid-template-columns: minmax(0, 1fr) 72px 6.4rem; grid-template-areas: "id spark px" "meta meta meta"; column-gap: 10px; row-gap: 2px; align-items: center; padding: 7px 4px; text-decoration: none; color: inherit; border-radius: 5px; }
+.tk .ap-row:hover, .tk .ap-row:focus-visible { background: #111a26; }
+.tk .ap-id { grid-area: id; min-width: 0; display: flex; align-items: baseline; gap: 6px; overflow: hidden; }
+.tk .ap-id b { font-family: var(--tk-mono); font-size: .86rem; color: #f3f6fa; }
+.tk .ap-id .co { font-size: .72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk .ap-spark { grid-area: spark; display: block; }
+.tk .ap-spark.up polyline { stroke: var(--tk-accent); } .tk .ap-spark.dn polyline { stroke: var(--tk-accent-2); }
+.tk .ap-spark-vide { width: 72px; height: 22px; border-bottom: 1px dashed var(--color-border-line); }
+.tk .ap-px { grid-area: px; display: flex; flex-direction: column; align-items: flex-end; font-family: var(--tk-mono); font-size: .76rem; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.tk .ap-px span:last-child { font-size: .68rem; }
+.tk .ap-meta { grid-area: meta; font-size: .72rem; color: var(--color-fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk .ap-meta .score-pill { font-family: var(--tk-mono); font-size: .66rem; padding: 0 4px; margin-right: 4px; }
+.tk .ap-alert { color: var(--tk-amber); }
+.tk .ap-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cds-gap-sm) var(--cds-gap-md); margin: 0; }
+.tk .ap-stats div { min-width: 0; }
+.tk .ap-stats dt { font-family: var(--tk-mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--color-fg-muted); }
+.tk .ap-stats dd { margin: 2px 0 0; font-family: var(--tk-mono); font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; color: #f3f6fa; }
+.tk .ap-stats dd.buy { color: var(--tk-accent); } .tk .ap-stats dd.sell { color: var(--tk-accent-2); }
+.tk .ap-stats dd.warn, .tk .ap-stats dd.warn a { color: var(--tk-amber); } .tk .ap-stats dd.muted { color: var(--color-fg-muted); font-size: .9rem; }
+.tk .ap-stats dd a { color: inherit; }

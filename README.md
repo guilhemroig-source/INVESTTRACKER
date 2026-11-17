@@ -339,6 +339,12 @@ Style « terminal de trading » repris du prototype (`ui-reference/`) : fond som
 
 - En-tête : point « LIVE », horloges UTC / New York / Paris en direct, état du NYSE (9h30–16h00 à New York, hors week-end), dernière publication captée.
 - Bandeau défilant des 40 dernières opérations (pause au survol), effet CRT discret.
+- **Aperçu** en haut de page (repliable, choix mémorisé) : quatre cartes cliquables, avec pour chaque action son cours, sa variation sur un mois et une mini-courbe de 3 mois.
+  - **À suivre** : les 6 actions les mieux notées au classement (score > 0) qui ont plus d'acheteurs que de vendeurs parmi les investisseurs suivis (90 jours).
+  - **Sous pression vendeuse** : au moins deux vendeurs distincts, plus nombreux que les acheteurs.
+  - **Mes actifs** : vos 6 plus grosses positions (plus-value latente, poids, alertes) et le portefeuille comparé à l'ETF ; à défaut, les actions de « Ma liste ».
+  - **Les 7 derniers jours** : achats et ventes déclarés, investisseurs actifs, action la plus achetée et la plus vendue, revues du journal et alertes du portefeuille à traiter.
+  Données servies par `GET /api/apercu` (`getApercu` dans `packages/core/src/apercu-store.ts`).
 - **11 onglets** : Alertes récentes (fil unifié, recherche, filtres, 8 lignes les plus récentes en surbrillance) · Super-investisseurs · Cathie Wood · Initiés & Musk · Donald Trump · Congrès US · Classement · Portefeuilles miroirs · Ma liste · Mon portefeuille · Journal ; et une page par action.
 - Dans toutes les tables : symbole en badge suivi du nom réel de la société, opération en pastille verte ou rouge, montants `fr-FR`, dates en français, badge « EDGAR ↗ » vers la déclaration officielle, ligne dépliable avec l'analyse technique.
 - Ligne « Données au … · dernière collecte réussie le … » sur chaque onglet ; mention explicite si la dernière collecte a échoué.
@@ -350,7 +356,7 @@ Style « terminal de trading » repris du prototype (`ui-reference/`) : fond som
 ## 10. Tests
 
 ```bash
-pnpm test        # 77 tests (vitest) dans les 3 paquets
+pnpm test        # 110 tests (vitest) dans les 3 paquets
 pnpm typecheck   # TypeScript strict
 ```
 

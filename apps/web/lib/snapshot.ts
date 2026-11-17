@@ -2,6 +2,7 @@
 export type Snapshot = {
   analyse?: (cle: string) => unknown;
   classement?: unknown;
+  apercu?: unknown;
   fiche?: (t: string) => unknown;
   miroirs?: unknown;
   miroir?: (acteur: string) => unknown;

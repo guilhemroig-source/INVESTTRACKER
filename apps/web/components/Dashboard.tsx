@@ -4,6 +4,7 @@ import type { DashboardData } from "@tracker/core";
 import { Header } from "./Header";
 import { Tape } from "./Tape";
 import { Footer } from "./Footer";
+import { Apercu } from "./Apercu";
 import { Alertes } from "./tabs/Alertes";
 import { Fonds } from "./tabs/Fonds";
 import { Ark } from "./tabs/Ark";
@@ -60,6 +61,7 @@ export function Dashboard({ data, today }: { data: DashboardData; today: string 
     <div className="tk">
       <Header lastDate={first?.datePublication ?? null} lastWho={first ? first.qui.replace(/\s*\(.*\)$/, "") : null} />
       <Tape ops={data.operations} />
+      {!action && <Apercu />}
       <div className="tabs" role="tablist">
         {TABS.map(([id, label]) => (
           <button key={id} className="tab" role="tab" aria-selected={!action && tab === id} onClick={() => go(id)}>{label}</button>
