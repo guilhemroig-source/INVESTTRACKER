@@ -84,7 +84,7 @@ export function ActionView({ ticker, analyses, onClose }: { ticker: string; anal
       <div className="card">
         <h2>Le cours et les opérations des investisseurs</h2>
         <p className="note">Chaque repère est placé au jour de l&apos;opération (fin de trimestre pour un 13F). Survolez le graphique pour le détail de la journée. Cours ajustés (Tiingo).{d.mesEntrees ? " En orange : vos achats (prix payé converti en dollars au taux du jour) et votre prix de revient, soit le cours en dollars au-dessus duquel vous êtes gagnant, au taux de change actuel." : ""}</p>
-        <PriceChart bars={d.bars} moi={d.mesEntrees} news={official.map((n) => ({ date: n.date, titre: n.titre, resume: n.resume }))}
+        <PriceChart ticker={d.ticker} bars={d.bars} moi={d.mesEntrees} news={official.map((n) => ({ date: n.date, titre: n.titre, resume: n.resume }))}
           ops={d.ops.map((o) => ({ date: o.dateOperation ?? o.datePublication, sens: o.sens, source: o.source, qui: o.qui, operation: o.operation, montantUsd: o.montantUsd, fourchette: o.fourchette }))} />
       </div>
 

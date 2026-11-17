@@ -3,6 +3,7 @@ import { scaleLinear, scaleTime } from "d3";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fmtDate, fmtPrice, fmtRange, fmtUsd } from "@/lib/format";
 import { type Win, panWin, selectWin, zoomWin } from "@/lib/zoom";
+import { IntradayChart } from "./IntradayChart";
 
 export interface ChartOp { date: string; sens: "achat" | "vente"; source: string; qui: string; operation: string; montantUsd: number | null; fourchette: string | null }
 export interface ChartNews { date: string; titre: string; resume?: string | null }
@@ -14,6 +15,7 @@ const SRC: Record<string, { lettre: string; label: string }> = {
   "13F": { lettre: "F", label: "Fonds (13F)" }, ARK: { lettre: "A", label: "ARK" }, FORM4: { lettre: "I", label: "Initiés" },
   TRUMP: { lettre: "T", label: "Trump" }, CONGRES: { lettre: "C", label: "Élus" },
 };
+const INTRA = [{ id: "1h", label: "1H" }, { id: "15min", label: "15M" }, { id: "5min", label: "5M" }] as const;
 const RANGES = [{ id: "3m", label: "3 mois", d: 92 }, { id: "6m", label: "6 mois", d: 183 }, { id: "1a", label: "1 an", d: 366 }, { id: "tout", label: "Tout", d: 99999 }] as const;
 const H = 340, M = { top: 18, right: 56, bottom: 46, left: 8 };
 
@@ -25,7 +27,8 @@ function useWidth<T extends HTMLElement>() {
 }
 
 /** Cours de l'action, avec les achats (▲) et ventes (▼) des investisseurs suivis et les annonces officielles (◆). */
-export function PriceChart({ bars, ops, news, moi }: { bars: { date: string; close: number }[]; ops: ChartOp[]; news: ChartNews[]; moi?: ChartMoi | null }) {
+export function PriceChart({ bars, ops, news, moi, ticker }: { bars: { date: string; close: number }[]; ops: ChartOp[]; news: ChartNews[]; moi?: ChartMoi | null; ticker?: string }) {
+  const [intra, setIntra] = useState<string | null>(null);
   const [ref, width] = useWidth<HTMLDivElement>();
   const [range, setRange] = useState<(typeof RANGES)[number]["id"]>("1a");
   const [hidden, setHidden] = useState<Set<string>>(new Set());
@@ -45,7 +48,23 @@ export function PriceChart({ bars, ops, news, moi }: { bars: { date: string; clo
     const i = bars.findIndex((x) => x.date >= from);
     return [Math.max(0, i), n - 1];
   }, [bars, n, range]);
-  if (!n) return <p className="note">Cours pas encore téléchargés pour cette action (collecteur « prix », par lots horaires).</p>;
+  const intraButtons = ticker ? (
+    <div className="subtabs" role="tablist" aria-label="Intrajournalier">
+      {INTRA.map((r) => <button key={r.id} type="button" className="subtab" aria-selected={intra === r.id} onClick={() => setIntra(r.id)}>{r.label}</button>)}
+    </div>
+  ) : null;
+  if (intra && ticker) return (
+    <div>
+      <div className="chart-bar">
+        <div className="subtabs" role="tablist" aria-label="Période">
+          {RANGES.map((r) => <button key={r.id} type="button" className="subtab" aria-selected={false} onClick={() => { setIntra(null); setRange(r.id); setWin(null); }}>{r.label}</button>)}
+        </div>
+        {intraButtons}
+      </div>
+      <IntradayChart ticker={ticker} interval={intra} prixRevientUsd={moi?.prixRevientUsd ?? null} />
+    </div>
+  );
+  if (!n) return <div>{intraButtons}<p className="note">Cours journaliers pas encore téléchargés pour cette action (collecteur « prix », par lots horaires). Les vues 1H, 15M et 5M sont disponibles.</p></div>;
   const w = win ?? rangeWin;
   const b = bars.slice(w[0], w[1] + 1);
   const from = b[0].date, last = b[b.length - 1].date;
@@ -81,6 +100,7 @@ export function PriceChart({ bars, ops, news, moi }: { bars: { date: string; clo
         <div className="subtabs" role="tablist" aria-label="Période">
           {RANGES.map((r) => <button key={r.id} type="button" className="subtab" aria-selected={!win && range === r.id} onClick={() => { setRange(r.id); setWin(null); }}>{r.label}</button>)}
         </div>
+        {intraButtons}
         <div className="zoom-bar" role="group" aria-label="Zoom">
           <button type="button" onClick={() => setWin(zoomWin(w, n, 0.5))} title="Rapprocher" aria-label="Rapprocher">+</button>
           <button type="button" onClick={() => setWin(zoomWin(w, n, 2))} title="Éloigner" aria-label="Éloigner">−</button>

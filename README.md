@@ -66,6 +66,7 @@ Fichier `.env` à la racine (jamais commité ; modèle : `.env.example`).
 |---|---|---|
 | `SEC_USER_AGENT` | **oui** | Nom et e-mail de contact exigés par la SEC, ex. `"Tracker Jean Dupont jean@exemple.fr"`. Sans elle, les collecteurs EDGAR refusent de démarrer. |
 | `TIINGO_API_KEY` | pour l'analyse technique | Clé gratuite sur [tiingo.com](https://www.tiingo.com) (cours journaliers). |
+| `TWELVEDATA_API_KEY` | pour les vues 1H / 15M / 5M | Clé gratuite sur [twelvedata.com](https://twelvedata.com) (800 appels/jour, 8/minute) : cours intrajournaliers téléchargés à l'affichage, gardés 5 minutes. |
 | `FINNHUB_API_KEY` | pour le calendrier | Clé gratuite sur [finnhub.io](https://finnhub.io) : dates de résultats (estimations et chiffres publiés) et nouvelles des sociétés. |
 | `TIINGO_MAX_PER_RUN` | non (45) | Nombre d'actions téléchargées par passage (quota gratuit ≈ 50 requêtes/heure). |
 | `SMS_PROVIDER` | non (`console`) | `allo`, `twilio` ou `console` (SMS seulement affiché et journalisé). |
@@ -289,7 +290,7 @@ Trois types de règles : une **action** (achats, ventes ou les deux), un **inves
 
 ### Page action (`#action-NVDA`, clic sur n'importe quel symbole)
 
-En tête : **ce que fait l'entreprise** (introduction Wikipédia en français, secteur, pays, capitalisation, ancienneté en bourse, site) et ses **dernières nouvelles** (Finnhub, résumé dépliable). **Zoom** : glisser sur le graphique pour sélectionner une période (pincer à deux doigts sur téléphone), boutons + / − / ← / →, double-clic ou « Annuler le zoom » pour revenir ; les 8 graphiques d'indicateurs des analyses ont une barre de zoom commune, centrée sur le jour de l'opération. Pour une action de « Mon portefeuille », le graphique montre **mes achats et ventes** (prix payé converti en dollars au taux BCE du jour) et **mon prix de revient** en pointillés orange : le cours en dollars au-dessus duquel la ligne est gagnante en euros au taux actuel ; l'écart s'affiche au survol. La même ligne figure sur les mini-courbes de « Mes actifs » dans l'aperçu. Les fiches dépliables (classement, analyses) commencent par une phrase sur l'activité de la société.
+En tête : **ce que fait l'entreprise** (introduction Wikipédia en français, secteur, pays, capitalisation, ancienneté en bourse, site) et ses **dernières nouvelles** (Finnhub, résumé dépliable). **Intrajournalier** : boutons **1H / 15M / 5M** à côté des périodes (environ 40, 10 et 5 séances), cours Twelve Data, heures de Paris, nuits et week-ends retirés, prix de revient affiché ; route `GET /api/intraday/<symbole>?interval=5min|15min|1h`. **Zoom** : glisser sur le graphique pour sélectionner une période (pincer à deux doigts sur téléphone), boutons + / − / ← / →, double-clic ou « Annuler le zoom » pour revenir ; les 8 graphiques d'indicateurs des analyses ont une barre de zoom commune, centrée sur le jour de l'opération. Pour une action de « Mon portefeuille », le graphique montre **mes achats et ventes** (prix payé converti en dollars au taux BCE du jour) et **mon prix de revient** en pointillés orange : le cours en dollars au-dessus duquel la ligne est gagnante en euros au taux actuel ; l'écart s'affiche au survol. La même ligne figure sur les mini-courbes de « Mes actifs » dans l'aperçu. Les fiches dépliables (classement, analyses) commencent par une phrase sur l'activité de la société.
 
 
 Cours ajusté (3 mois, 6 mois, 1 an, tout) avec les achats ▲ et ventes ▼ des investisseurs (initiale de la source, filtres par source, infobulle de la journée) et les annonces officielles ◆ ; toutes les opérations sur l'action (dépliables) ; annonces 8-K et presse ; fiche complète ; bouton « Suivre ».
@@ -454,7 +455,7 @@ Le dépôt contient tout le nécessaire : `Dockerfile` (appli web + planificateu
 
 1. Sur [railway.com](https://railway.com) : *New Project* → *Deploy from GitHub repo* → choisir ce dépôt (Railway lit `railway.json` et construit le `Dockerfile`).
 2. Dans le service : *Settings* → *Volumes* → *Add volume*, point de montage **`/data`**.
-3. *Variables* : `SEC_USER_AGENT`, `APP_USER`, `APP_PASSWORD`, `TIINGO_API_KEY`, `FINNHUB_API_KEY`, et pour les SMS `SMS_PROVIDER`, `SMS_API_KEY`, `APP_URL` (l'adresse publique, après l'étape 4).
+3. *Variables* : `SEC_USER_AGENT`, `APP_USER`, `APP_PASSWORD`, `TIINGO_API_KEY`, `FINNHUB_API_KEY`, `TWELVEDATA_API_KEY`, et pour les SMS `SMS_PROVIDER`, `SMS_API_KEY`, `APP_URL` (l'adresse publique, après l'étape 4).
 4. *Settings* → *Networking* → *Generate Domain* : l'appli est en ligne, protégée par le mot de passe.
 
 ### Render
