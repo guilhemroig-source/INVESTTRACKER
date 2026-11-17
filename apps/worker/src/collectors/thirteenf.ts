@@ -1,4 +1,4 @@
-import { type Db, type Holding13F, type ThirteenFJson, adapt13F, diff13F, insertIgnore, insertOperations, loadTickerNames, parseInfoTable, parseInsidersetActivity, parseInsidersetInvestor, quarterEnd, schema as s, thirteenFKey } from "@tracker/core";
+import { type Db, type Holding13F, type ThirteenFJson, adapt13F, diff13F, insertIgnore, insertOperations, issuerIndex, loadTickerNames, parseInfoTable, tickerFromIssuer, trimestreOf, parseInsidersetActivity, parseInsidersetInvestor, quarterEnd, schema as s, thirteenFKey } from "@tracker/core";
 import { and, eq, isNull, or } from "drizzle-orm";
 import { getJson, getText } from "../http";
 import { TOOL_UA, secUserAgent } from "../env";
@@ -102,8 +102,17 @@ async function verifyQuarter(db: Db, f: Fund, cik: string, trimestre: string, by
   const unknown: typeof absents = [];
   const extra: ThirteenFJson[] = [];
   const weights = new Map<string, { poidsPct: number; rang: number | null }>();
+  // CUSIP inconnu : rapprochement par le nom de l'émetteur (un seul symbole connu portant ce nom), puis mémorisation du CUSIP
+  let index: ReturnType<typeof issuerIndex> | null = null;
+  const all = new Map(db.select().from(s.tickers).all().map((t) => [t.ticker, t]));
   for (const m of absents) {
-    const t = byCusip.get(m.cusip);
+    let t = byCusip.get(m.cusip);
+    if (!t) {
+      index ??= issuerIndex([...all.values()]);
+      const sym = tickerFromIssuer(m.nameOfIssuer, index, m.titleOfClass);
+      t = sym ? all.get(sym) : undefined;
+      if (t && !t.cusip) db.update(s.tickers).set({ cusip: m.cusip }).where(eq(s.tickers.ticker, t.ticker)).run();
+    }
     if (!t) { unknown.push(m); continue; }
     extra.push({ investisseur: f.investisseur, fonds: f.fonds, trimestre, depose_le: cur.fileDate, ticker: t.ticker, societe: t.nom, cusip: m.cusip,
       operation: m.operation, variation_actions: m.variation, variation_pct: m.operation === "Sortie totale" ? -100 : m.variation_pct, verifie_edgar: true, source_url: b.url });
@@ -116,7 +125,7 @@ async function verifyQuarter(db: Db, f: Fund, cik: string, trimestre: string, by
     insertOperations(db, r.operations);
   }
   return [
-    `${f.fonds} ${trimestre} : ${ok}/${rows.length} mouvements confirmés sur EDGAR (${cur.adsh})`,
+    rows.length ? `${f.fonds} ${trimestre} : ${ok}/${rows.length} mouvements confirmés sur EDGAR (${cur.adsh})` : `${f.fonds} ${trimestre} : lu directement sur EDGAR (${cur.adsh}), ${moves.length} mouvement(s)`,
     ...(ecarts.length ? [`  non confirmés : ${ecarts.slice(0, 8).join(" ; ")}${ecarts.length > 8 ? " …" : ""}`] : []),
     ...(added.length ? [`  ${added.length} mouvement(s) absents d'insiderset ajoutés depuis EDGAR : ${added.join(" ; ")}`] : []),
     ...(unknown.length ? [`  ${unknown.length} mouvement(s) EDGAR non repris (CUSIP sans symbole connu) : ${unknown.slice(0, 5).map((x) => `${x.nameOfIssuer} [${x.cusip}] ${x.variation}`).join(", ")}`] : []),
@@ -154,8 +163,15 @@ export const collect13F: Collector = async (db) => {
       const lastEnd = [...byPeriod.keys()].sort().at(-1);
       if (lastEnd && lastEnd > quarterEnd(inv.trimestre)!) {
         const h = byPeriod.get(lastEnd)!;
-        evenements.push(`Nouveau 13F ${f.investisseur} depose sur EDGAR le ${h.fileDate} (fin de trimestre ${lastEnd})`);
-        details.push(`  ${f.fonds} : 13F du ${lastEnd} déjà sur EDGAR (${h.adsh}), pas encore sur insiderset`);
+        // insiderset en retard : les mouvements du trimestre sont calculés directement depuis EDGAR (différence avec le trimestre précédent)
+        const tri = trimestreOf(lastEnd);
+        const deja = db.select().from(s.raw13f).where(and(eq(s.raw13f.fonds, f.fonds), eq(s.raw13f.trimestre, tri))).all().length;
+        if (!deja) {
+          evenements.push(`Nouveau 13F ${f.investisseur} (${tri}) depose sur EDGAR le ${h.fileDate}`);
+          details.push(`  ${f.fonds} : 13F ${tri} déposé sur EDGAR le ${h.fileDate}, pas encore sur insiderset : mouvements lus sur EDGAR`);
+          details.push(...(await verifyQuarter(db, f, cik, tri, byPeriod)).map((d) => "    " + d));
+        }
+        db.update(s.funds).set({ dernierTrimestre: tri, dernierDepot: h.fileDate }).where(eq(s.funds.slug, f.slug)).run();
       }
       // À vérifier : toute ligne non rapprochée par nous d'une ligne EDGAR (pas de CUSIP), même marquée vérifiée par le kit.
       const unverified = db.select().from(s.raw13f).where(and(eq(s.raw13f.fonds, f.fonds), eq(s.raw13f.trimestre, inv.trimestre), or(eq(s.raw13f.verifieEdgar, false), isNull(s.raw13f.cusip), isNull(s.raw13f.poidsPct)))).all();

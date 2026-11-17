@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   aggregateForm4, parseArkHoldingsCsv, parseCathiesArkTrades, parseCompactUsd, parseDate, parseForm4Xml,
-  parseOpenInsiderTable, personKey, form4Key,
+  parseOpenInsiderTable, personKey, form4Key, issuerIndex, tickerFromIssuer, trimestreOf,
 } from "../src";
 
 const fx = (f: string) => fs.readFileSync(path.join(__dirname, "../../../fixtures", f), "utf8");
@@ -164,5 +164,43 @@ describe("Congrès (fixture réelle Bargo)", () => {
   it("symboles : une seule forme", () => {
     expect(canonTicker("BRK-B")).toBe("BRK.B");
     expect(canonTicker("len.b")).toBe("LEN.B");
+  });
+});
+
+describe("getsignal : nouvelle mise en page (novembre 2026)", () => {
+  it("statistiques, déclarations, transactions et actions les plus traitées", () => {
+    const r = parseGetSignalTrump(fx("getsignal-trump-2026-11-17.html"));
+    expect(r.meta).toEqual({ a_jour_au: "2026-11-16", delai_median_jours: 60, part_hors_delai_45j: 0.861, premiere_transaction: "2026-01-02", derniere_transaction: "2026-08-31" });
+    expect(r.filings).toHaveLength(5);
+    expect(r.filings.at(-1)).toMatchObject({ depose_le: "2026-10-08", transactions: 517, achats: 289, ventes: 228 });
+    expect(r.recent).toHaveLength(150);
+    expect(r.topTickers).toHaveLength(25);
+    expect(r.topTickers[0]).toEqual({ ticker: "MSFT", transactions: 48 });
+    expect(r.topTickers.find((t) => t.ticker === "BRK.B")?.transactions).toBe(28);
+  });
+});
+
+describe("13F : rapprochement des émetteurs par le nom", () => {
+  const idx = issuerIndex([
+    { ticker: "ORCL", nom: "Oracle", cik: "1" }, { ticker: "ORCL.PD", nom: "Oracle Corp", cik: "1" },
+    { ticker: "AMAT", nom: "Applied Materials", cik: "2" }, { ticker: "ET", nom: "Energy Transfer LP", cik: "3" },
+    { ticker: "GOOG", nom: "Alphabet (Google)", cik: "4" }, { ticker: "GOOGL", nom: "Alphabet (A)", cik: "4" },
+    { ticker: "ABC", nom: "Homonyme Inc", cik: "5" }, { ticker: "XYZ", nom: "Homonyme Corp", cik: "6" },
+    { ticker: "VRSN", nom: "Verisign Inc/Ca", cik: "7" },
+  ]);
+  it("abréviations de la SEC et actions de préférence écartées", () => {
+    expect(tickerFromIssuer("ORACLE CORP", idx, "COM")).toBe("ORCL");
+    expect(tickerFromIssuer("APPLIED MATLS INC", idx, "COM")).toBe("AMAT");
+    expect(tickerFromIssuer("ENERGY TRANSFER L P", idx, "COM UT LTD PTN")).toBe("ET");
+    expect(tickerFromIssuer("VERISIGN INC", idx, "COM")).toBe("VRSN");
+  });
+  it("jamais de devinette : catégories d'actions ou sociétés différentes", () => {
+    expect(tickerFromIssuer("ALPHABET INC", idx, "CAP STK CL A")).toBeNull();
+    expect(tickerFromIssuer("HOMONYME", idx, "COM")).toBeNull();
+    expect(tickerFromIssuer("INCONNUE SA", idx, "COM")).toBeNull();
+  });
+  it("trimestre d'une date de fin", () => {
+    expect(trimestreOf("2026-09-30")).toBe("T3 2026");
+    expect(trimestreOf("2025-12-31")).toBe("T4 2025");
   });
 });

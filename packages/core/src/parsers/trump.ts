@@ -28,9 +28,13 @@ export function parseGetSignalTrump(html: string): GetSignalTrump {
   const text = pageText(html);
 
   const asOf = /As of ([A-Z][a-z]{2} \d{1,2}, \d{4})/.exec(text);
-  const range = /([A-Z][a-z]{2} \d{1,2}, \d{4}) to ([A-Z][a-z]{2} \d{1,2}, \d{4}) First and last trade date/.exec(text);
-  const median = /(\d+)d Median days from trade to filing/.exec(text);
-  const late = /([\d.]+)% Share of transactions filed more than 45 days/.exec(text);
+  // Deux mises en page connues : « Jan 2, 2026 to Aug 31, 2026 First and last trade date » (2026 T1-T3)
+  // et « Traded Jan 2 to Aug 31, 2026 and disclosed in … » (depuis novembre 2026)
+  let range: [string, string, string] | null = /([A-Z][a-z]{2} \d{1,2}, \d{4}) to ([A-Z][a-z]{2} \d{1,2}, \d{4}) First and last trade date/.exec(text) as never;
+  const traded = /Traded ([A-Z][a-z]{2} \d{1,2})(, \d{4})? to ([A-Z][a-z]{2} \d{1,2}, (\d{4}))/.exec(text);
+  if (!range && traded) range = [traded[0], `${traded[1]}${traded[2] ?? `, ${traded[4]}`}`, traded[3]];
+  const median = /(\d+)d Median days from trade to filing/.exec(text) ?? /(\d+) days median from trade to filing/i.exec(text);
+  const late = /([\d.]+)% Share of transactions filed more than 45 days/.exec(text) ?? /([\d.]+)% of the transactions were filed more than 45 days/i.exec(text);
   if (!asOf || !median || !late) throw new Error("getsignal : statistiques introuvables (la page a peut-être changé)");
 
   const tables = $("table").toArray();
@@ -80,8 +84,11 @@ export function parseGetSignalTrump(html: string): GetSignalTrump {
     } satisfies TrumpTxJson];
   }).filter((r) => r.depose_le);
 
-  const top = /Most traded stock rows only, by number of transactions (.*?)(?: Disclosed|$)/.exec(text)?.[1] ?? "";
-  const topTickers: TrumpTickerJson[] = [...top.matchAll(/([A-Z][A-Z0-9.\-]{0,9}) (\d[\d,]*)/g)].map((m) => ({ ticker: m[1], transactions: parseNum(m[2])! }));
+  // « MSFT 48 META 45 … » (ancienne page) ou « MSFT Microsoft 48 META Meta Platforms 45 … » (nouvelle)
+  const top = (/Most traded stock rows only, by number of transactions (.*?)(?: Disclosed| Purchases Sales| Filing dates|$)/.exec(text)?.[1] ?? "")
+    .replace(/^.*?more than any other ticker\.\s*/, "").replace(/\b\d+ more Show fewer\b/, " ");
+  const topTickers: TrumpTickerJson[] = [...top.matchAll(/\b([A-Z][A-Z0-9.\-]{0,9})\b(?: [^\d]*?)? (\d[\d,]*)\b/g)]
+    .map((m) => ({ ticker: m[1], transactions: parseNum(m[2])! }));
 
   return {
     meta: {
