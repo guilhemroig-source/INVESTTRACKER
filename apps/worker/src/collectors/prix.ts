@@ -1,4 +1,4 @@
-import { type Db, refreshAnalyses, schema as s } from "@tracker/core";
+import { type Db, importsEnAttente, processImports, refreshAnalyses, schema as s } from "@tracker/core";
 import { eq, sql } from "drizzle-orm";
 import { HttpError, getJson } from "../http";
 import { TOOL_UA } from "../env";
@@ -37,6 +37,18 @@ export const collectPrix: Collector = async (db) => {
   const span = needs.reduce((a, n) => ({ first: n.first < a.first ? n.first : a.first, last: n.last > a.last ? n.last : a.last, pub: a.pub }), { first: "9999", last: "0000", pub: "9999" });
   // VT : ETF monde (Vanguard Total World), référence pour comparer « Mon portefeuille »
   if (needs.length) needs.unshift({ ticker: "SPY", ...span }, { ticker: "QQQ", ...span }, { ticker: "VT", ...span });
+  // Actifs hors actions américaines (ETF européens, actions françaises, non coté, cryptos) : pas de cours Tiingo « actions » ;
+  // les indices qui prolongent leurs cours saisis (ex. SPY) restent, eux, téléchargés.
+  const actifs = db.select().from(s.actifsPerso).all();
+  const perso = new Set(actifs.map((a) => a.ticker));
+  for (const a of actifs) if (a.cotation === "manuel" && a.indice && !needs.some((n) => n.ticker === a.indice)) needs.push({ ticker: a.indice, ...span });
+  for (let i = needs.length - 1; i >= 0; i--) if (perso.has(needs[i].ticker)) needs.splice(i, 1);
+  // Lignes importées en attente de cours : en tête de file
+  const today0 = isoDate(new Date());
+  for (const l of importsEnAttente(db).filter((x) => (x.cotation ?? "marche") === "marche")) {
+    const t = l.ticker.trim().toUpperCase();
+    if (!needs.some((n) => n.ticker === t)) needs.unshift({ ticker: t, first: today0, last: today0, pub: today0 });
+  }
   const status = new Map(db.select().from(s.priceStatus).all().map((r) => [r.ticker, r]));
 
   const todo: { ticker: string; start: string; full: boolean }[] = [];
@@ -83,7 +95,30 @@ export const collectPrix: Collector = async (db) => {
       details.push(`${job.ticker} : ${(e as Error).message}`);
     }
   }
+  // Cryptos de « Mon portefeuille » : paire Tiingo (ex. btcusd), 2 ans d'historique puis mise à jour
+  for (const a of actifs.filter((x) => x.cotation === "crypto" && x.indice)) {
+    if (faits >= budget) break;
+    const st = status.get(a.ticker);
+    if (st?.derniereDate && st.derniereDate >= addDays(today, -1)) continue;
+    const start = st?.derniereDate ? addDays(st.derniereDate, 1) : addDays(today, -730);
+    const now = new Date().toISOString();
+    try {
+      const res = await getJson<{ priceData: { date: string; open: number; high: number; low: number; close: number; volume: number }[] }[]>(
+        `https://api.tiingo.com/tiingo/crypto/prices?tickers=${encodeURIComponent(a.indice!.toLowerCase())}&startDate=${start}&resampleFreq=1day`,
+        { userAgent: TOOL_UA, cacheTtl: 0, headers: { Authorization: `Token ${key}` } });
+      faits++;
+      const rows = (res[0]?.priceData ?? []).filter((b) => b.close > 0).map((b) => ({ ticker: a.ticker, date: b.date.slice(0, 10), open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume, closeBrut: b.close }));
+      lues += rows.length; nouvelles += rows.length;
+      db.transaction((tx) => { for (const r of rows) tx.insert(s.prices).values(r).onConflictDoUpdate({ target: [s.prices.ticker, s.prices.date], set: { open: r.open, high: r.high, low: r.low, close: r.close, volume: r.volume, closeBrut: r.closeBrut } }).run(); });
+      const sp = db.get<{ a: string | null; b: string | null }>(sql`SELECT MIN(date) a, MAX(date) b FROM prices WHERE ticker = ${a.ticker}`);
+      upsertStatus(db, { ticker: a.ticker, statut: "ok", premiereDate: sp?.a ?? start, derniereDate: sp?.b ?? today, dernierAppel: now, erreur: null });
+    } catch (e) {
+      if (e instanceof HttpError && e.status === 429) { details.push("Quota Tiingo atteint : reprise au prochain passage"); break; }
+      details.push(`${a.ticker} (crypto ${a.indice}) : ${(e as Error).message}`);
+    }
+  }
   const reste = Math.max(0, todo.length - faits);
+  for (const r of processImports(db)) details.push(`Import ${r.ticker} : ${r.statut} (${r.detail})`);
   const an = refreshAnalyses(db);
   details.push(`${an.ok} opération(s) analysées, ${an.insuffisant} avec un historique trop court`);
   details.unshift(`${faits} action(s) mises à jour, ${reste} en attente (quota Tiingo)`);

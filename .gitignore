@@ -5,4 +5,6 @@ var/
 *.log
 *.zip
 apercu-*.png
+pf-*.png
+apps/web/*.png
 *.tsbuildinfo

@@ -345,3 +345,6 @@ html, body { background: #05080d; margin: 0; }
 .tk .ap-stats dd.buy { color: var(--tk-accent); } .tk .ap-stats dd.sell { color: var(--tk-accent-2); }
 .tk .ap-stats dd.warn, .tk .ap-stats dd.warn a { color: var(--tk-amber); } .tk .ap-stats dd.muted { color: var(--color-fg-muted); font-size: .9rem; }
 .tk .ap-stats dd a { color: inherit; }
+.tk .maj-cours { display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px; }
+.tk .maj-cours .search { flex: 0 1 7.5rem; min-width: 0; padding: 3px 6px; font-size: .72rem; }
+.tk .warn-note { color: var(--tk-amber); }

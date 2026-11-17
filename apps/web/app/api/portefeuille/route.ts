@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { addTx, getDb, getPortfolio, todayParis } from "@tracker/core";
+import { addTx, getDb, getPortfolio, processImports, todayParis } from "@tracker/core";
 
 export const dynamic = "force-dynamic";
 
 /** Mon portefeuille : positions, totaux, comparaison avec l'ETF de référence, alertes de risque, transactions. */
 export function GET() {
-  return NextResponse.json(getPortfolio(getDb(), todayParis()));
+  const db = getDb();
+  processImports(db); // lignes importées dont le cours vient d'arriver
+  return NextResponse.json(getPortfolio(db, todayParis()));
 }
 
 /** Ajoute une transaction { date, type: achat|vente|dividende, ticker, quantite, prix, frais, compte, note }. */

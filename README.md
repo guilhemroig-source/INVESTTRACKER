@@ -211,7 +211,8 @@ Modifier le schéma : éditer `packages/core/src/db/schema.ts`, puis `pnpm db:ge
 | `13f` | Dernier 13F de chaque fonds (insiderset, colonne « Value » ignorée), puis vérification ligne à ligne sur EDGAR par différence entre les tables d'information de deux trimestres. Les mouvements officiels absents d'insiderset sont ajoutés quand leur CUSIP correspond à un symbole connu. Détecte un 13F déposé sur EDGAR avant la mise à jour d'insiderset. | www.insiderset.com, efts.sec.gov, www.sec.gov |
 | `trump` | OGE 278-T retranscrits par getsignal (statistiques, déclarations, 150 dernières transactions, top des actions), nombre de transactions de la dernière déclaration recoupé avec open-cabinet | getsignal.finance, open-cabinet.org |
 | `congres` | Transactions et classement des élus (API gratuite Bargo, attribution affichée) | www.bargo.ai |
-| `prix` | Cours journaliers ajustés pour l'analyse technique et le portefeuille, plus SPY, QQQ et VT (ETF monde) comme références | api.tiingo.com |
+| `change` | Taux de change euro / dollar de référence de la BCE (depuis 2015, puis chaque jour) | data-api.ecb.europa.eu |
+| `prix` | Cours journaliers ajustés pour l'analyse technique et le portefeuille, plus SPY, QQQ et VT (ETF monde) comme références ; cryptos du portefeuille | api.tiingo.com |
 | `fondamentaux` | Comptes de chaque société (API XBRL « companyfacts » de la SEC) : chiffre d'affaires, bénéfice et BPA sur 12 mois glissants, flux de trésorerie, dette, trésorerie, nombre d'actions ; rafraîchis chaque semaine | data.sec.gov |
 | `news` | Annonces 8-K de chaque société (EDGAR) et articles de presse (GDELT) autour des opérations | efts.sec.gov, www.sec.gov, api.gdeltproject.org |
 | `all` | `tickers`, `ark`, `edgar-musk`, `openinsider` (→ `edgar-insiders` si échec), `13f`, `trump`, `congres`, `prix`, `fondamentaux`, `news` | |
@@ -291,6 +292,12 @@ Cours ajusté (3 mois, 6 mois, 1 an, tout) avec les achats ▲ et ventes ▼ des
 
 Vos vraies transactions (achat, vente, dividende ; compte CTO, PEA, assurance-vie ; frais) donnent : positions au prix de revient moyen pondéré frais inclus, gains latents et réalisés, dividendes, poids de chaque ligne, et la **comparaison avec un ETF** (monde VT par défaut, ou S&P 500 / Nasdaq 100) en rejouant chaque achat et chaque vente sur l'ETF pour le même montant et à la même date. Impôt estimé sur le compte-titres (flat tax 30 %). **Règles de risque** réglables (poids maximum d'une ligne, seuil de baisse qui déclenche une revue) ; alertes aussi quand des investisseurs suivis vendent une de vos lignes, quand une décision du journal est à revoir, ou quand une action américaine est déclarée sur un PEA. Les alertes figurent dans le SMS de 7h47. Les cours des actions détenues sont téléchargés même si aucun investisseur suivi ne les détient. Routes : `GET/POST /api/portefeuille`, `DELETE /api/portefeuille/<id>`, `PUT /api/portefeuille/regles`.
 
+**Euros ou dollars** (réglage « Devise », euros par défaut) : chaque transaction garde sa devise ; achats et frais sont convertis au taux de référence de la **BCE** du jour de l'opération, les cours au taux du jour du cours. Ainsi la plus-value inclut l'effet de change, comme chez un courtier français. Sans taux connu, une transaction est signalée et ignorée, jamais convertie au hasard.
+
+**Actifs hors actions américaines** (carte « Déclarer un actif ») : ETF européen, action française, fonds non coté, crypto. Cotation « cours saisi » (mis à jour depuis le tableau des positions, alerte s'il date de plus d'un mois), éventuellement **prolongée par un indice** (ex. un ETF S&P 500 en euros suit SPY converti en euros, dividendes réinvestis) ; ou « crypto » (paire Tiingo, ex. `btcusd`, cours chaque heure). Comptes : CTO, PEA, assurance-vie, crypto, non coté, autre ; l'impôt estimé couvre CTO, crypto et non coté ; l'alerte PEA porte sur les actifs non déclarés éligibles.
+
+**Import depuis l'appli d'un courtier** (`POST /api/portefeuille/import`) : pour chaque ligne, la valeur affichée et la plus-value « depuis l'achat » (montant ou %). Le serveur en déduit le prix de revient, la quantité (valeur ÷ cours du jour en euros) et, si la date d'achat n'est pas donnée, la date la plus récente où le cours valait ce prix de revient (indiqué « estimée » dans la note de la transaction). Une ligne dont le cours n'est pas encore téléchargé reste en attente et est calculée automatiquement après la collecte suivante. Les actifs à cours saisi sont comptés comme « 1 lot ». Autres routes : `POST /api/portefeuille/actifs`, `POST /api/portefeuille/cours`.
+
 ### Journal de décisions (onglet « Journal » et chaque page action)
 
 Pour chaque décision (achat, renforcement, vente, allègement, attendre, écarter) : la thèse, ce qui ferait changer d'avis, l'objectif de cours, la conviction (1 à 5) et la date de revue (90 jours par défaut). L'appli fige le contexte du moment (cours, score smart money, PER, acheteurs et vendeurs), mesure la suite face à l'ETF de référence (verdict automatique après 7 jours : un achat est « bon » s'il bat l'ETF, une vente s'il fait moins bien), et rappelle les revues dans le SMS de 7h47. La revue enregistre le résultat et la leçon. Routes : `GET/POST /api/journal`, `PATCH/DELETE /api/journal/<id>`.
@@ -356,7 +363,7 @@ Style « terminal de trading » repris du prototype (`ui-reference/`) : fond som
 ## 10. Tests
 
 ```bash
-pnpm test        # 110 tests (vitest) dans les 3 paquets
+pnpm test        # 115 tests (vitest) dans les 3 paquets
 pnpm typecheck   # TypeScript strict
 ```
 

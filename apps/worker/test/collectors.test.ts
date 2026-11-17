@@ -106,3 +106,12 @@ describe("13F et Trump", () => {
     expect(r.notes).toHaveLength(1);
   });
 });
+
+describe("taux de change BCE", () => {
+  it("lit le CSV SDMX de la BCE", async () => {
+    const { parseEcbCsv } = await import("../src/collectors/change");
+    const csv = "KEY,FREQ,CURRENCY,CURRENCY_DENOM,EXR_TYPE,EXR_SUFFIX,TIME_PERIOD,OBS_VALUE,OBS_STATUS\nEXR.D.USD.EUR.SP00.A,D,USD,EUR,SP00,A,2026-11-12,1.1634,A\nEXR.D.USD.EUR.SP00.A,D,USD,EUR,SP00,A,2026-11-13,1.1602,A\n";
+    expect(parseEcbCsv(csv)).toEqual([{ date: "2026-11-12", eurusd: 1.1634 }, { date: "2026-11-13", eurusd: 1.1602 }]);
+    expect(() => parseEcbCsv("a,b\n1,2")).toThrow(/BCE/);
+  });
+});

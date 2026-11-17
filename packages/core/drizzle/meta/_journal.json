@@ -71,6 +71,13 @@
       "when": 1794851827619,
       "tag": "0009_portefeuille",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1794905684780,
+      "tag": "0010_devises",
+      "breakpoints": true
     }
   ]
 }

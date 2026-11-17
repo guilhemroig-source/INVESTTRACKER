@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import type { Apercu as Data, ApercuItem } from "@tracker/core";
 import { actionHash, load } from "@/lib/snapshot";
-import { fmtDate, fmtPct, fmtPrice, fmtUsd } from "@/lib/format";
+import { fmtDate, fmtMoney, fmtPct, fmtPrice } from "@/lib/format";
 
 const p = (x: number | null | undefined, d = 1) => (x == null ? "—" : fmtPct(x * 100, d));
 const c = (x: number | null | undefined) => (x == null ? "muted" : x >= 0 ? "buy" : "sell");
@@ -27,8 +27,8 @@ function Row({ it, meta }: { it: ApercuItem; meta: React.ReactNode }) {
         <span className="ap-id"><b>{it.ticker}</b><span className="co">{it.societe ?? ""}</span></span>
         <Spark v={it.cot.spark} />
         <span className="ap-px">
-          <span>{it.cot.cours != null ? fmtPrice(it.cot.cours) : "—"}</span>
-          <span className={c(it.cot.var1m)} title="Variation sur un mois">{it.cot.var1m != null ? `${p(it.cot.var1m)} 1m` : "pas de cours"}</span>
+          <span>{it.cot.cours != null ? fmtPrice(it.cot.cours, it.cot.devise) : "—"}</span>
+          <span className={c(it.cot.var1m)} title="Variation sur un mois">{it.cot.var1m != null ? `${p(it.cot.var1m)} 1m` : it.cot.cours != null ? "cours saisi" : "pas de cours"}</span>
         </span>
         <span className="ap-meta">{meta}</span>
       </a>
@@ -77,7 +77,7 @@ export function Apercu() {
             <h3>{d.actifs.source === "liste" ? "◆ Ma liste" : "◆ Mes actifs"}</h3>
             {d.actifs.total ? (
               <p className="ap-sub">
-                {fmtUsd(d.actifs.total.valeur)} · <span className={c(d.actifs.total.gainTotalPct)}>{p(d.actifs.total.gainTotalPct)}</span>
+                {fmtMoney(d.actifs.total.valeur, d.actifs.total.devise)} · <span className={c(d.actifs.total.gainTotalPct)}>{p(d.actifs.total.gainTotalPct)}</span>
                 {d.actifs.total.reference ? <> · {d.actifs.total.reference} <span className={c(d.actifs.total.referencePct)}>{p(d.actifs.total.referencePct)}</span></> : null}
               </p>
             ) : <p className="ap-sub">{d.actifs.source === "liste" ? "Actions de votre liste de suivi." : "Vos positions et actions suivies."}</p>}

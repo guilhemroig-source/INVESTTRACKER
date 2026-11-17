@@ -50,9 +50,18 @@ export function fmtRange(r: string | null | undefined): string {
   return r;
 }
 
-export function fmtPrice(n: number | null | undefined): string {
+const SYM: Record<string, string> = { USD: "$", EUR: "€" };
+
+export function fmtPrice(n: number | null | undefined, devise = "USD"): string {
   if (n == null || !Number.isFinite(n) || n === 0) return "—";
-  return fmtNum(n, 2) + NNBSP + "$";
+  return fmtNum(n, 2) + NNBSP + (SYM[devise] ?? devise);
+}
+
+/** Montant exact au centime dans une devise : "2 851,07 €", "+80,35 €" */
+export function fmtMoney(n: number | null | undefined, devise = "EUR", opts: { signed?: boolean } = {}): string {
+  if (n == null || !Number.isFinite(n)) return "—";
+  const sign = opts.signed ? (n > 0 ? "+" : n < 0 ? "−" : "") : n < 0 ? "−" : "";
+  return sign + fmtNum(Math.abs(n), 2) + NNBSP + (SYM[devise] ?? devise);
 }
 
 export function fmtPct(n: number | null | undefined, decimals = 1, signed = true): string {

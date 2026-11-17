@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, uniqueIndex, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, uniqueIndex, index, primaryKey } from "drizzle-orm/sqlite-core";
 
 /** Source d'une opération dans le modèle unifié. */
 export const SOURCES = ["13F", "ARK", "FORM4", "TRUMP", "CONGRES"] as const;
@@ -375,9 +375,41 @@ export const portfolioTx = sqliteTable("portfolio_tx", {
   quantite: real("quantite").notNull().default(0),
   prix: real("prix").notNull().default(0), // prix unitaire en dollars (dividende : montant total)
   frais: real("frais").notNull().default(0),
-  compte: text("compte").notNull().default("CTO"), // 'CTO' | 'PEA' | 'Assurance-vie' | 'Autre'
+  compte: text("compte").notNull().default("CTO"), // 'CTO' | 'PEA' | 'Assurance-vie' | 'Crypto' | 'Non coté' | 'Autre'
   note: text("note"),
+  /** Devise du prix et des frais : 'USD' ou 'EUR'. */
+  devise: text("devise").notNull().default("USD"),
   creeLe: text("cree_le").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+/**
+ * Actifs de « Mon portefeuille » qui ne sont pas des actions américaines cotées (Tiingo) :
+ * ETF européens, actions françaises, fonds non cotés, cryptos.
+ *   cotation 'manuel' : dernier cours saisi (cours_manuels), éventuellement prolongé par la variation d'un indice
+ *   cotation 'crypto' : cours journaliers Tiingo (paire indiquée dans `indice`, ex. btcusd)
+ */
+export const actifsPerso = sqliteTable("actifs_perso", {
+  ticker: text("ticker").primaryKey(),
+  nom: text("nom").notNull(),
+  devise: text("devise").notNull().default("EUR"),
+  cotation: text("cotation").notNull().default("manuel"), // 'manuel' | 'crypto'
+  indice: text("indice"), // 'manuel' : symbole dont la variation prolonge le dernier cours saisi (ex. SPY) ; 'crypto' : paire Tiingo
+  peaEligible: integer("pea_eligible", { mode: "boolean" }).notNull().default(false),
+  note: text("note"),
+});
+
+/** Cours saisis à la main (valeur affichée par le courtier, valeur liquidative d'un fonds non coté…). */
+export const coursManuels = sqliteTable("cours_manuels", {
+  ticker: text("ticker").notNull(),
+  date: text("date").notNull(),
+  cours: real("cours").notNull(),
+  devise: text("devise").notNull().default("EUR"),
+}, (t) => [primaryKey({ columns: [t.ticker, t.date] })]);
+
+/** Taux de change de référence de la BCE : dollars pour 1 euro. */
+export const change = sqliteTable("change", {
+  date: text("date").primaryKey(),
+  eurusd: real("eurusd").notNull(),
 });
 
 /** Journal de décisions : pourquoi, à quel prix, ce qui ferait changer d'avis, et la revue a posteriori. */

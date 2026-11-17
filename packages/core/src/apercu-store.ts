@@ -8,7 +8,7 @@ import { getPortfolio, lastPrice, listJournal } from "./portfolio-store";
 import { listWatch } from "./watch-store";
 
 /** Cours d'une action pour l'aperçu : dernier cours, variations 1 jour / 1 mois, courbe de 3 mois. */
-export interface Cotation { cours: number | null; date: string | null; var1j: number | null; var1m: number | null; spark: number[] }
+export interface Cotation { cours: number | null; date: string | null; var1j: number | null; var1m: number | null; spark: number[]; devise?: string }
 export interface ApercuItem {
   ticker: string; societe: string | null; cot: Cotation;
   score?: number; acheteurs?: string[]; vendeurs?: string[]; derniere?: string; retard?: number | null;
@@ -20,7 +20,7 @@ export interface Apercu {
   pression: ApercuItem[];
   actifs: {
     source: "portefeuille" | "liste" | "aucun"; items: ApercuItem[];
-    total: { valeur: number; gainTotalPct: number | null; reference: string | null; referencePct: number | null } | null;
+    total: { valeur: number; devise: string; gainTotalPct: number | null; reference: string | null; referencePct: number | null } | null;
   };
   semaine: {
     achats: number; ventes: number; acteurs: number; dernierePublication: string | null;
@@ -68,8 +68,13 @@ export function getApercu(db: Db, today: string, classement: ClassementRow[] = g
   if (pos.length) {
     actifs = {
       source: "portefeuille",
-      items: pos.slice(0, 6).map((p) => ({ ticker: p.ticker, societe: pf.societes[p.ticker] ?? nom(p.ticker), cot: cot(p.ticker), gainPct: p.gainLatentPct, poids: p.poids, alertes: p.alertes })),
-      total: { valeur: pf.totaux.valeur, gainTotalPct: pf.totaux.gainTotalPct, reference: pf.reference?.ticker ?? null, referencePct: pf.reference?.gainTotalPct ?? null },
+      items: pos.slice(0, 6).map((p) => {
+        // Variation et courbe : celles de l'actif coté, ou de l'indice qui prolonge un cours saisi ; cours dans la devise du portefeuille
+        const q = pf.cotes[p.ticker];
+        const base = cotationFrom(q?.source === "manuel" ? [] : barsOf(db, q?.indice ?? p.ticker));
+        return { ticker: p.ticker, societe: pf.societes[p.ticker] ?? nom(p.ticker), cot: { ...base, cours: p.cours, date: p.dateCours, devise: pf.devise }, gainPct: p.gainLatentPct, poids: p.poids, alertes: p.alertes };
+      }),
+      total: { valeur: pf.totaux.valeur, devise: pf.devise, gainTotalPct: pf.totaux.gainTotalPct, reference: pf.reference?.ticker ?? null, referencePct: pf.reference?.gainTotalPct ?? null },
     };
   } else {
     const suivies = [...new Set(listWatch(db).filter((w) => w.type === "action").map((w) => w.valeur))];
