@@ -115,3 +115,13 @@ describe("taux de change BCE", () => {
     expect(() => parseEcbCsv("a,b\n1,2")).toThrow(/BCE/);
   });
 });
+
+describe("calendrier Finnhub", () => {
+  it("une publication par trimestre : clé stable, chiffres conservés", async () => {
+    const { earningRow } = await import("../src/collectors/calendrier");
+    const r = earningRow({ symbol: "NVDA", date: "2026-11-17", hour: "amc", quarter: 3, year: 2027, epsEstimate: 2.525, epsActual: null, revenueEstimate: 111e9, revenueActual: null }, "now");
+    expect(r).toMatchObject({ cle: "res:NVDA:2027T3", date: "2026-11-17", heure: "amc", ticker: "NVDA", type: "resultats", titre: "Résultats T3 (exercice 2027)" });
+    expect(JSON.parse(r.details)).toEqual({ trimestre: 3, annee: 2027, bpaEstime: 2.525, bpaReel: null, caEstime: 111e9, caReel: null });
+    expect(earningRow({ symbol: "X", date: "2026-11-18", hour: "", quarter: 1, year: 2026, epsEstimate: null, epsActual: null, revenueEstimate: null, revenueActual: null }, "now").heure).toBeNull();
+  });
+});

@@ -1,4 +1,4 @@
-import { type Db, getPortfolio, listJournal, next13FDeadline, schema as s, watchMatches } from "@tracker/core";
+import { type Db, FOMC_DECISIONS, getCalendrier, getPortfolio, listJournal, next13FDeadline, schema as s, watchMatches } from "@tracker/core";
 import { and, desc, gt, gte, inArray, sql } from "drizzle-orm";
 import { ALL_ORDER } from "../collectors";
 
@@ -89,6 +89,10 @@ export function buildDailySms(db: Db, now = new Date()): string {
   if (j.aRevoir) parts.push(`Journal : ${j.aRevoir} decision${j.aRevoir > 1 ? "s" : ""} a revoir.`);
   const pf = getPortfolio(db, today);
   if (pf.alertes.length) parts.push(`Portefeuille : ${pf.alertes.length} alerte${pf.alertes.length > 1 ? "s" : ""} (${[...new Set(pf.alertes.map((a) => a.split(" : ")[0]))].slice(0, 4).join(", ")}).`);
+  // Résultats de mes actions aujourd'hui et demain (« ce soir » = après la clôture, soit vers 22h à Paris)
+  const res = getCalendrier(db, today, 1).evenements.filter((e) => e.type === "resultats" && e.mien && !e.passe);
+  if (res.length) parts.push(`Resultats : ${res.slice(0, 5).map((e) => `${e.ticker} ${e.date === today ? (e.heure === "amc" ? "ce soir" : e.heure === "bmo" ? "avant ouverture" : "aujourd'hui") : "demain"}`).join(", ")}.`);
+  if (FOMC_DECISIONS.includes(today)) parts.push("Fed : decision de taux ce soir 20h.");
   const next = next13FDeadline(today);
   parts.push(`Prochaine echeance : 13F ${next.trimestre} le ${ddmm(next.limite)}.`);
   for (const f of failedSources(db, since)) parts.push(`${f}.`);

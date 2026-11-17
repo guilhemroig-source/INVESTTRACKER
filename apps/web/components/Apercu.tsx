@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import type { Apercu as Data, ApercuItem } from "@tracker/core";
 import { actionHash, load } from "@/lib/snapshot";
-import { fmtDate, fmtMoney, fmtPct, fmtPrice } from "@/lib/format";
+import { fmtDate, fmtJour, fmtMoney, fmtPct, fmtPrice } from "@/lib/format";
+import { ResultatsDetail } from "./tabs/Calendrier";
 
 const p = (x: number | null | undefined, d = 1) => (x == null ? "—" : fmtPct(x * 100, d));
 const c = (x: number | null | undefined) => (x == null ? "muted" : x >= 0 ? "buy" : "sell");
@@ -90,6 +91,21 @@ export function Apercu() {
             ))}</ul> : (
               <p className="note">Rien pour l’instant : ajoutez vos positions dans <a href="#portefeuille">Mon portefeuille</a> ou des actions dans <a href="#liste">Ma liste</a>.</p>
             )}
+          </div>
+
+          <div className="card ap-card">
+            <h3>▦ À venir</h3>
+            <p className="ap-sub">Résultats de vos actions et de celles des investisseurs, Fed, 13F (3 semaines).</p>
+            {d.agenda.length ? <ul className="ap-agenda">{d.agenda.map((e, i) => (
+              <li key={i}>
+                <span className="ap-date">{fmtJour(e.date, d.date).replace(/ · .*/, "").replace(/^(\p{L}+) (\d+) .*/u, "$1 $2")}</span>
+                <span className="ap-ev">
+                  {e.ticker ? <a className="sym-link" href={actionHash(e.ticker)}><b>{e.ticker}</b></a> : null} {e.ticker ? (e.mien ? <span className="cal-tag">{e.detenu ? "à moi" : "ma liste"}</span> : <span className="muted">{e.acheteurs.length ? `▲${e.acheteurs.length}` : ""}{e.vendeurs.length ? ` ▼${e.vendeurs.length}` : ""}</span>) : <span>{e.titre}</span>}
+                  {e.type === "resultats" ? <><span className="muted"> résultats{e.heure === "amc" ? " après clôture" : e.heure === "bmo" ? " avant ouverture" : ""}</span><br /><ResultatsDetail d={e.details} /></> : null}
+                </span>
+              </li>
+            ))}</ul> : <p className="note">Rien de prévu (dates de résultats : clé Finnhub requise).</p>}
+            <p className="ap-sub" style={{ margin: "8px 0 0" }}><a href="#calendrier">Tout le calendrier →</a></p>
           </div>
 
           <div className="card ap-card">

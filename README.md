@@ -66,6 +66,7 @@ Fichier `.env` à la racine (jamais commité ; modèle : `.env.example`).
 |---|---|---|
 | `SEC_USER_AGENT` | **oui** | Nom et e-mail de contact exigés par la SEC, ex. `"Tracker Jean Dupont jean@exemple.fr"`. Sans elle, les collecteurs EDGAR refusent de démarrer. |
 | `TIINGO_API_KEY` | pour l'analyse technique | Clé gratuite sur [tiingo.com](https://www.tiingo.com) (cours journaliers). |
+| `FINNHUB_API_KEY` | pour le calendrier | Clé gratuite sur [finnhub.io](https://finnhub.io) : dates de résultats (estimations et chiffres publiés) et nouvelles des sociétés. |
 | `TIINGO_MAX_PER_RUN` | non (45) | Nombre d'actions téléchargées par passage (quota gratuit ≈ 50 requêtes/heure). |
 | `SMS_PROVIDER` | non (`console`) | `allo`, `twilio` ou `console` (SMS seulement affiché et journalisé). |
 | `SMS_API_KEY` | pour envoyer | Clé API Allo, ou `SID:TOKEN` pour Twilio. |
@@ -211,6 +212,7 @@ Modifier le schéma : éditer `packages/core/src/db/schema.ts`, puis `pnpm db:ge
 | `13f` | Dernier 13F de chaque fonds (insiderset, colonne « Value » ignorée), puis vérification ligne à ligne sur EDGAR par différence entre les tables d'information de deux trimestres. Les mouvements officiels absents d'insiderset sont ajoutés quand leur CUSIP correspond à un symbole connu. Détecte un 13F déposé sur EDGAR avant la mise à jour d'insiderset. | www.insiderset.com, efts.sec.gov, www.sec.gov |
 | `trump` | OGE 278-T retranscrits par getsignal (statistiques, déclarations, 150 dernières transactions, top des actions), nombre de transactions de la dernière déclaration recoupé avec open-cabinet | getsignal.finance, open-cabinet.org |
 | `congres` | Transactions et classement des élus (API gratuite Bargo, attribution affichée) | www.bargo.ai |
+| `calendrier` | Dates de résultats J−14 à J+90 des actions suivies (estimations de BPA et de chiffre d'affaires, puis chiffres publiés) ; nouvelles des sociétés de mon portefeuille et de ma liste | finnhub.io |
 | `change` | Taux de change euro / dollar de référence de la BCE (depuis 2015, puis chaque jour) | data-api.ecb.europa.eu |
 | `prix` | Cours journaliers ajustés pour l'analyse technique et le portefeuille, plus SPY, QQQ et VT (ETF monde) comme références ; cryptos du portefeuille | api.tiingo.com |
 | `fondamentaux` | Comptes de chaque société (API XBRL « companyfacts » de la SEC) : chiffre d'affaires, bénéfice et BPA sur 12 mois glissants, flux de trésorerie, dette, trésorerie, nombre d'actions ; rafraîchis chaque semaine | data.sec.gov |
@@ -298,6 +300,10 @@ Vos vraies transactions (achat, vente, dividende ; compte CTO, PEA, assurance-vi
 
 **Import depuis l'appli d'un courtier** (`POST /api/portefeuille/import`) : pour chaque ligne, la valeur affichée et la plus-value « depuis l'achat » (montant ou %). Le serveur en déduit le prix de revient, la quantité (valeur ÷ cours du jour en euros) et, si la date d'achat n'est pas donnée, la date la plus récente où le cours valait ce prix de revient (indiqué « estimée » dans la note de la transaction). Une ligne dont le cours n'est pas encore téléchargé reste en attente et est calculée automatiquement après la collecte suivante. Les actifs à cours saisi sont comptés comme « 1 lot ». Autres routes : `POST /api/portefeuille/actifs`, `POST /api/portefeuille/cours`.
 
+### Calendrier (onglet « Calendrier » et carte « À venir » de l'aperçu)
+
+De J−7 à J+45, ce qui peut faire bouger vos actions et celles des investisseurs suivis : publications de résultats (avant l'ouverture ou après la clôture, BPA et chiffre d'affaires attendus, puis écart entre publié et attendu), nouvelles des sociétés de votre portefeuille et de votre liste, décisions de taux de la Fed (calendrier officiel du FOMC, tableau `FOMC_DECISIONS` à compléter chaque année) et date limite des 13F. Filtres « Mes actions » / « Actions des investisseurs » et par type ; chaque événement indique les investisseurs qui ont acheté (▲) ou vendu (▼) l'action ces 90 derniers jours. Le SMS de 7h47 annonce les résultats de vos actions du jour et du lendemain, et les soirs de décision de la Fed. Route : `GET /api/calendrier`.
+
 ### Journal de décisions (onglet « Journal » et chaque page action)
 
 Pour chaque décision (achat, renforcement, vente, allègement, attendre, écarter) : la thèse, ce qui ferait changer d'avis, l'objectif de cours, la conviction (1 à 5) et la date de revue (90 jours par défaut). L'appli fige le contexte du moment (cours, score smart money, PER, acheteurs et vendeurs), mesure la suite face à l'ETF de référence (verdict automatique après 7 jours : un achat est « bon » s'il bat l'ETF, une vente s'il fait moins bien), et rappelle les revues dans le SMS de 7h47. La revue enregistre le résultat et la leçon. Routes : `GET/POST /api/journal`, `PATCH/DELETE /api/journal/<id>`.
@@ -350,9 +356,10 @@ Style « terminal de trading » repris du prototype (`ui-reference/`) : fond som
   - **À suivre** : les 6 actions les mieux notées au classement (score > 0) qui ont plus d'acheteurs que de vendeurs parmi les investisseurs suivis (90 jours).
   - **Sous pression vendeuse** : au moins deux vendeurs distincts, plus nombreux que les acheteurs.
   - **Mes actifs** : vos 6 plus grosses positions (plus-value latente, poids, alertes) et le portefeuille comparé à l'ETF ; à défaut, les actions de « Ma liste ».
+  - **À venir** : sur 3 semaines, les résultats de vos actions et des actions les plus traitées par les investisseurs, la Fed, les 13F.
   - **Les 7 derniers jours** : achats et ventes déclarés, investisseurs actifs, action la plus achetée et la plus vendue, revues du journal et alertes du portefeuille à traiter.
   Données servies par `GET /api/apercu` (`getApercu` dans `packages/core/src/apercu-store.ts`).
-- **11 onglets** : Alertes récentes (fil unifié, recherche, filtres, 8 lignes les plus récentes en surbrillance) · Super-investisseurs · Cathie Wood · Initiés & Musk · Donald Trump · Congrès US · Classement · Portefeuilles miroirs · Ma liste · Mon portefeuille · Journal ; et une page par action.
+- **12 onglets** : Alertes récentes (fil unifié, recherche, filtres, 8 lignes les plus récentes en surbrillance) · Calendrier · Super-investisseurs · Cathie Wood · Initiés & Musk · Donald Trump · Congrès US · Classement · Portefeuilles miroirs · Ma liste · Mon portefeuille · Journal ; et une page par action.
 - Dans toutes les tables : symbole en badge suivi du nom réel de la société, opération en pastille verte ou rouge, montants `fr-FR`, dates en français, badge « EDGAR ↗ » vers la déclaration officielle, ligne dépliable avec l'analyse technique.
 - Ligne « Données au … · dernière collecte réussie le … » sur chaque onglet ; mention explicite si la dernière collecte a échoué.
 - Pied de page « D'où viennent les données, et avec quel délai ».
@@ -363,7 +370,7 @@ Style « terminal de trading » repris du prototype (`ui-reference/`) : fond som
 ## 10. Tests
 
 ```bash
-pnpm test        # 115 tests (vitest) dans les 3 paquets
+pnpm test        # 118 tests (vitest) dans les 3 paquets
 pnpm typecheck   # TypeScript strict
 ```
 
@@ -443,7 +450,7 @@ Le dépôt contient tout le nécessaire : `Dockerfile` (appli web + planificateu
 
 1. Sur [railway.com](https://railway.com) : *New Project* → *Deploy from GitHub repo* → choisir ce dépôt (Railway lit `railway.json` et construit le `Dockerfile`).
 2. Dans le service : *Settings* → *Volumes* → *Add volume*, point de montage **`/data`**.
-3. *Variables* : `SEC_USER_AGENT`, `APP_USER`, `APP_PASSWORD`, `TIINGO_API_KEY`, et pour les SMS `SMS_PROVIDER`, `SMS_API_KEY`, `APP_URL` (l'adresse publique, après l'étape 4).
+3. *Variables* : `SEC_USER_AGENT`, `APP_USER`, `APP_PASSWORD`, `TIINGO_API_KEY`, `FINNHUB_API_KEY`, et pour les SMS `SMS_PROVIDER`, `SMS_API_KEY`, `APP_URL` (l'adresse publique, après l'étape 4).
 4. *Settings* → *Networking* → *Generate Domain* : l'appli est en ligne, protégée par le mot de passe.
 
 ### Render

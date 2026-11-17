@@ -438,3 +438,21 @@ export const settings = sqliteTable("settings", {
   cle: text("cle").primaryKey(),
   valeur: text("valeur").notNull(),
 });
+
+/**
+ * Calendrier : publications de résultats (Finnhub), nouvelles des sociétés (Finnhub), événements de marché.
+ * `cle` unique : res:TICKER:2027T3 (une publication par trimestre, date mise à jour), fh:<id> (nouvelle).
+ */
+export const evenements = sqliteTable("evenements", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  cle: text("cle").notNull(),
+  date: text("date").notNull(),
+  heure: text("heure"), // résultats : 'bmo' avant l'ouverture, 'amc' après la clôture, 'dmh' pendant la séance ; nouvelle : HH:MM UTC
+  ticker: text("ticker"),
+  type: text("type").notNull(), // 'resultats' | 'nouvelle'
+  titre: text("titre").notNull(),
+  details: text("details"), // JSON
+  source: text("source").notNull(),
+  url: text("url"),
+  collecteLe: text("collecte_le").notNull(),
+}, (t) => [uniqueIndex("evenements_cle").on(t.cle), index("evenements_date").on(t.date)]);

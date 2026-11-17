@@ -6,6 +6,7 @@ import { acteurOf } from "./fiche";
 import { type ClassementRow, getClassement } from "./fiche-store";
 import { getPortfolio, lastPrice, listJournal } from "./portfolio-store";
 import { listWatch } from "./watch-store";
+import { type EvenementVue, getCalendrier } from "./calendrier-store";
 
 /** Cours d'une action pour l'aperçu : dernier cours, variations 1 jour / 1 mois, courbe de 3 mois. */
 export interface Cotation { cours: number | null; date: string | null; var1j: number | null; var1m: number | null; spark: number[]; devise?: string }
@@ -22,6 +23,8 @@ export interface Apercu {
     source: "portefeuille" | "liste" | "aucun"; items: ApercuItem[];
     total: { valeur: number; devise: string; gainTotalPct: number | null; reference: string | null; referencePct: number | null } | null;
   };
+  /** Prochains événements : résultats de mes actions et de celles des investisseurs, Fed, échéances */
+  agenda: EvenementVue[];
   semaine: {
     achats: number; ventes: number; acteurs: number; dernierePublication: string | null;
     plusAchetee: { ticker: string; acteurs: number } | null; plusVendue: { ticker: string; acteurs: number } | null;
@@ -98,6 +101,12 @@ export function getApercu(db: Db, today: string, classement: ClassementRow[] = g
     aSuivre: selectASuivre(classement).map(item),
     pression: selectPression(classement).map(item),
     actifs,
+    agenda: (() => {
+      const l = getCalendrier(db, today, 21).evenements.filter((e) => !e.passe && e.type !== "nouvelle");
+      // Mes actions d'abord, puis les plus traitées par les investisseurs, dans l'ordre des dates
+      const choix = new Set([...l.filter((e) => e.mien || e.type !== "resultats"), ...[...l].sort((a, b) => (b.acheteurs.length + b.vendeurs.length) - (a.acheteurs.length + a.vendeurs.length))].slice(0, 7));
+      return l.filter((e) => choix.has(e));
+    })(),
     semaine: {
       achats: ops.filter((o) => o.sens === "achat").length, ventes: ops.filter((o) => o.sens !== "achat").length,
       acteurs: new Set(ops.map(acteurOf)).size,

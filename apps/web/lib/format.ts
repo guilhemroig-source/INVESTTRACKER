@@ -84,3 +84,13 @@ export function fmtDateTime(iso: string | null | undefined): string {
 }
 
 export const sensClass = (sens: string) => (sens === "achat" ? "buy" : "sell");
+
+const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+/** "2026-11-17" -> "mardi 17 nov." ; « Aujourd'hui » / « Demain » / « Hier » par rapport à `today`. */
+export function fmtJour(iso: string, today?: string): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  const base = `${JOURS[d.getUTCDay()]} ${fmtDate(iso, false)}`;
+  if (!today) return base;
+  const diff = Math.round((Date.parse(iso) - Date.parse(today)) / 86400_000);
+  return diff === 0 ? `Aujourd'hui · ${base}` : diff === 1 ? `Demain · ${base}` : diff === -1 ? `Hier · ${base}` : base.charAt(0).toUpperCase() + base.slice(1);
+}

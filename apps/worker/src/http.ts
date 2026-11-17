@@ -12,7 +12,7 @@ if (process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY
 }
 
 /** Débit maximal par hôte (requêtes/seconde). SEC : 10/s autorisées, on reste à 8. */
-const RATE: Record<string, number> = { "www.sec.gov": 8, "efts.sec.gov": 8, "data.sec.gov": 8 };
+const RATE: Record<string, number> = { "www.sec.gov": 8, "efts.sec.gov": 8, "data.sec.gov": 8, "finnhub.io": 0.9 }; // Finnhub gratuit : 60/min
 const DEFAULT_RATE = 1;
 const nextSlot = new Map<string, number>();
 

@@ -16,6 +16,7 @@ import { Miroirs } from "./tabs/Miroirs";
 import { MaListe } from "./tabs/MaListe";
 import { Portefeuille } from "./tabs/Portefeuille";
 import { Journal } from "./tabs/Journal";
+import { Calendrier } from "./tabs/Calendrier";
 import { ActionView } from "./action/ActionView";
 import { tickerFromHash } from "@/lib/snapshot";
 import { acteurOf } from "@tracker/core/fiche";
@@ -23,6 +24,7 @@ import { useMemo } from "react";
 
 const TABS = [
   ["alertes", "Alertes récentes"],
+  ["calendrier", "Calendrier"],
   ["fonds", "Super-investisseurs"],
   ["ark", "Cathie Wood (ARK)"],
   ["inities", "Initiés & Musk"],
@@ -79,6 +81,7 @@ export function Dashboard({ data, today }: { data: DashboardData; today: string 
       {tab === "liste" && <MaListe acteurs={acteurs} analyses={data.analyses} tickers={data.tickers} />}
       {tab === "portefeuille" && <Portefeuille />}
       {tab === "journal" && <Journal />}
+      {tab === "calendrier" && <Calendrier />}
       </>}
       <Footer />
     </div>

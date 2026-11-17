@@ -348,3 +348,27 @@ html, body { background: #05080d; margin: 0; }
 .tk .maj-cours { display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px; }
 .tk .maj-cours .search { flex: 0 1 7.5rem; min-width: 0; padding: 3px 6px; font-size: .72rem; }
 .tk .warn-note { color: var(--tk-amber); }
+
+/* ---- Calendrier ---- */
+.tk .seg { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px; background: var(--color-bg); border: 1px solid var(--color-border-line); border-radius: 7px; }
+.tk .seg .tab[aria-pressed="true"] { color: #04110a; background: var(--tk-accent); }
+.tk .cal-jour + .cal-jour { margin-top: var(--cds-gap-md); }
+.tk .cal-jour h3 { font-family: var(--tk-mono); font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; color: var(--tk-amber); margin: var(--cds-gap-md) 0 var(--cds-gap-xs); }
+.tk .cal-jour ul { list-style: none; margin: 0; padding: 0; }
+.tk .cal-ev { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 10px; padding: 8px 6px; border-top: 1px solid var(--color-border-line); border-left: 2px solid transparent; }
+.tk .cal-ev.cal-mien { border-left-color: var(--tk-accent); background: rgba(34,229,132,.04); }
+.tk .cal-ev.cal-macro, .tk .cal-ev.cal-echeance { border-left-color: var(--tk-amber); }
+.tk .cal-quand { font-family: var(--tk-mono); font-size: .7rem; color: var(--color-fg-muted); padding-top: 3px; }
+.tk .cal-corps { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.tk .cal-titre { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-size: .86rem; }
+.tk .cal-nom { color: #f3f6fa; font-weight: 600; }
+.tk .cal-lien { color: var(--color-fg); text-decoration: none; } .tk .cal-lien:hover { text-decoration: underline; }
+.tk .cal-tag { font-family: var(--tk-mono); font-size: .62rem; letter-spacing: .06em; text-transform: uppercase; color: var(--tk-accent); border: 1px solid rgba(34,229,132,.4); border-radius: 4px; padding: 0 5px; }
+.tk .cal-chiffres, .tk .cal-inv { font-size: .76rem; color: var(--color-fg-muted); }
+.tk .cal-chiffres b { color: var(--color-fg); font-weight: 600; }
+@media (max-width: 640px) { .tk .cal-ev { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+.tk .ap-agenda li { display: grid; grid-template-columns: 5.6rem minmax(0, 1fr); gap: 8px; padding: 6px 2px; font-size: .78rem; }
+.tk .ap-date { font-family: var(--tk-mono); font-size: .68rem; color: var(--tk-amber); padding-top: 2px; }
+.tk .ap-ev { min-width: 0; }
+.tk .ap-ev .cal-chiffres { font-size: .7rem; }
+.tk .ap-sub a { color: var(--tk-accent); }

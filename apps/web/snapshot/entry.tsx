@@ -14,6 +14,7 @@ interface Payload {
   trades: Record<string, TradeInput & { ticker: string; news?: NewsAnalysis }>;
   classement: ClassementRow[];
   apercu: unknown;
+  calendrier: unknown;
   fiches: Record<string, Fiche>;
   miroirs: MirrorSummary[];
   miroirDetails: Record<string, MirrorResult>;
@@ -33,6 +34,7 @@ const barsOf = (t: string): Bar[] => {
 (globalThis as unknown as { __TRACKER_SNAPSHOT__: unknown }).__TRACKER_SNAPSHOT__ = {
   classement: P.classement,
   apercu: P.apercu,
+  calendrier: P.calendrier,
   miroirs: P.miroirs,
   miroir: (a: string) => {
     if (P.miroirDetails[a]) return P.miroirDetails[a];

@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { build } from "esbuild";
-import { barsOf, getApercu, getClassement, getDashboardData, getDb, getFiche, getMirror, getMirrors, newsAnalysisFor, schema as s, todayParis, trackRecords, tradeInput } from "@tracker/core";
+import { barsOf, getApercu, getCalendrier, getClassement, getDashboardData, getDb, getFiche, getMirror, getMirrors, newsAnalysisFor, schema as s, todayParis, trackRecords, tradeInput } from "@tracker/core";
 
 const out = path.resolve(process.argv[2] ?? "snapshot.html");
 const webDir = path.resolve(import.meta.dirname, "..");
@@ -30,6 +30,7 @@ for (const o of db.select().from(s.operations).all()) {
 const today = todayParis();
 const classement = getClassement(db, today);
 const apercu = getApercu(db, today, classement);
+const calendrier = getCalendrier(db, today);
 const track = trackRecords(db);
 const fiches: Record<string, unknown> = {};
 for (const t of new Set(db.select({ t: s.operations.ticker }).from(s.operations).all().map((x) => x.t))) fiches[t] = getFiche(db, t, today, track);
@@ -56,7 +57,7 @@ const js = bundle.outputFiles[0].text.replace(/<\/script/gi, "<\\/script");
 const cssDir = path.join(webDir, ".next/static/css");
 const css = fs.readdirSync(cssDir).filter((f) => f.endsWith(".css")).map((f) => fs.readFileSync(path.join(cssDir, f), "utf8")).join("\n");
 
-const payload = JSON.stringify({ data, today, genereLe: new Date().toISOString(), prices, trades, classement, apercu, fiches, miroirs, miroirDetails, newsByTicker }).replace(/</g, "\\u003c");
+const payload = JSON.stringify({ data, today, genereLe: new Date().toISOString(), prices, trades, classement, apercu, calendrier, fiches, miroirs, miroirDetails, newsByTicker }).replace(/</g, "\\u003c");
 
 const html = `<title>Tracker des grands investisseurs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
